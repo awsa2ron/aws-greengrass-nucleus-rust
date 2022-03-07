@@ -1,0 +1,31 @@
+[package]
+name = "aws-greengrass-nucleus"
+version = "0.0.1"
+authors = ["Aaron Tsui <kaixu@amazon.com>"]
+edition = "2021"
+rust-version = "1.56"
+description = "aws greengrass nucleus in Rust (unofficial)"
+documentation = "https://docs.aws.amazon.com/greengrass/"
+readme = "README.md"
+homepage = "https://https://aws.amazon.com/greengrass/"
+repository = "https://github.com/awsa2ron/aws-greengrass-nucleus-rust"
+license = "MIT"
+license-file = "LICENSE"
+keywords = ["aws", "iot", "edge", "webassembly", "embedded"]
+# workspace = "path/to/workspace/root"
+# build = "build.rs"
+# links = "foo"
+# exclude = ["/ci", "images/", ".*"]
+# include = ["/src", "COPYRIGHT", "/examples", "!/examples/big_example"]
+# publish = ["aws-greengrass-nucleus"]
+# default-run = "main"
+
+# [package.metadata.android]
+# package-name = "my-awesome-android-app"
+# assets = "path/to/static"
+
+
+[dependencies]
+aws-config = "0.8.0"
+aws-sdk-greengrass = "0.8.0"
+tokio = { version = "1", features = ["full"] }
