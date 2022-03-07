@@ -1,6 +1,6 @@
 [package]
 name = "aws-greengrass-nucleus"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Aaron Tsui <kaixu@amazon.com>"]
 edition = "2021"
 rust-version = "1.56"
@@ -12,6 +12,11 @@ repository = "https://github.com/awsa2ron/aws-greengrass-nucleus-rust"
 license = "MIT"
 license-file = "LICENSE"
 keywords = ["aws", "iot", "edge", "webassembly", "embedded"]
+categories = [
+    "embedded",
+    "command-line-utilities",
+    "wasm"
+]
 # workspace = "path/to/workspace/root"
 # build = "build.rs"
 # links = "foo"
