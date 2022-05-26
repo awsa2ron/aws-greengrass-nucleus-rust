@@ -11,7 +11,7 @@ homepage = "https://https://aws.amazon.com/greengrass/"
 repository = "https://github.com/awsa2ron/aws-greengrass-nucleus-rust"
 license = "MIT"
 license-file = "LICENSE"
-keywords = ["aws", "iot", "edge", "webassembly", "embedded"]
+keywords = ["aws", "iot", "edge", "embedded"]
 categories = [
     "embedded",
     "command-line-utilities",
