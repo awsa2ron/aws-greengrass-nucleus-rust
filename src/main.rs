@@ -58,6 +58,45 @@ pub struct  ComponentStatusDetails {
     // State state,
 }
 
+pub const FLEET_STATUS_SERVICE_TOPICS:&str = "FleetStatusService";
+pub const DEFAULT_FLEET_STATUS_SERVICE_PUBLISH_TOPIC:&str = "$aws/things/{thingName}/greengrassv2/health/json";
+pub const FLEET_STATUS_TEST_PERIODIC_UPDATE_INTERVAL_SEC :&str= "fssPeriodicUpdateIntervalSec";
+pub const DEFAULT_PERIODIC_PUBLISH_INTERVAL_SEC:usize = 86_400;
+pub const FLEET_STATUS_PERIODIC_PUBLISH_INTERVAL_SEC:&str = "periodicStatusPublishIntervalSeconds";
+const  FLEET_STATUS_SEQUENCE_NUMBER_TOPIC:&str = "sequenceNumber";
+const  FLEET_STATUS_LAST_PERIODIC_UPDATE_TIME_TOPIC:&str = "lastPeriodicUpdateTime";
+const  MAX_PAYLOAD_LENGTH_BYTES:usize = 128_000;
+pub const  DEVICE_OFFLINE_MESSAGE:&str = "Device not configured to talk to AWS IoT cloud. FleetStatusService is offline";
+// extends GreengrassService 
+pub struct  FleetStatusService{
+    // DeviceConfiguration deviceConfiguration;
+    // GlobalStateChangeListener handleServiceStateChange = this::handleServiceStateChange,
+    // Function<Map<String, Object>, Boolean> deploymentStatusChanged = this::deploymentStatusChanged,
+
+    updateTopic:String,
+    thingName:String,
+    // MqttClient mqttClient,
+    // Kernel kernel,
+    architecture:String,
+    platform:String,
+    // MqttChunkedPayloadPublisher<ComponentStatusDetails> publisher,
+    // DeploymentStatusKeeper deploymentStatusKeeper,
+    //For testing
+
+    // AtomicBoolean isConnected = new AtomicBoolean(true),
+    // AtomicBoolean isEventTriggeredUpdateInProgress = new AtomicBoolean(false),
+    // AtomicBoolean isFSSSetupComplete = new AtomicBoolean(false),
+    // Set<GreengrassService> updatedGreengrassServiceSet =
+            // Collections.newSetFromMap(new ConcurrentHashMap<>()),
+    // ConcurrentHashMap<GreengrassService, Instant> serviceFssTracksMap = new ConcurrentHashMap<>(),
+    // AtomicBoolean isDeploymentInProgress = new AtomicBoolean(false),
+    // Object periodicUpdateInProgressLock = new Object(),
+
+    periodicPublishIntervalSec:usize,
+    // ScheduledFuture<?> periodicUpdateFuture,
+
+}
+
 
 
 fn main() {
