@@ -1,4 +1,4 @@
-use tracing::{event, span, info, Level};
+use tracing::{event, span, info, debug, Level};
 use tracing_subscriber;
 use clap::Parser;
 use aws_config::meta::region::RegionProviderChain;
@@ -125,25 +125,69 @@ struct Args {
     #[clap(short, long)]
     name: String,
 
-    #[clap(short, long, default_value = "/greengrass/v2")]
+    #[clap(long, default_value = "/greengrass/v2")]
     root: String,
 
     #[clap(short, long, default_value = "FILE")]
     log: String,
 
-    #[clap(short, long, default_value = "ap-southeast-1")]
-    aws_region: String,
+    #[clap(short, long)]
+    region: Option<String>,
 
     #[clap(short, long)]
     provision: bool,
 }
 
-fn main() {
+// Lists your IoT cores.
+// snippet-start:[iot.rust.list-core-devices]
+async fn show_cores(client: &Client) -> Result<(), Error> {
+    let resp = client.list_core_devices().send().await?;
+
+    info!("cores:");
+
+    for core in resp.core_devices().unwrap() {
+        info!(
+            "  Name:  {}",
+            core.core_device_thing_name().unwrap_or_default()
+        );
+        info!(
+            "  Status:  {:?}",
+            core.status().unwrap()
+        );
+        info!(
+            "  Last update:  {:?}",
+            core.last_status_update_timestamp().unwrap()
+        );
+    }
+
+
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Error> {
     let args = Args::parse();
     // install global collector configured based on RUST_LOG env var.
     tracing_subscriber::fmt::init();
 
-    info!( "{}", FLOW)
+    info!( "{}", FLOW);
+
+        let region_provider = RegionProviderChain::first_try(args.region.map(Region::new))
+        .or_default_provider()
+        .or_else(Region::new("us-west-2"));
+
+        debug!("IoT client version: {}", PKG_VERSION);
+        debug!(
+            "Region:             {}",
+            region_provider.region().await.unwrap().as_ref()
+        );
+
+    let shared_config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&shared_config);
+
+    show_cores(&client).await
+
+
 }
 
 fn uploadFleetStatusServiceData(
