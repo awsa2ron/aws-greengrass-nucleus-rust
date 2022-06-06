@@ -95,10 +95,6 @@ pub struct FleetStatusService {
     // ScheduledFuture<?> periodicUpdateFuture,
 }
 
-pub const COMMAND: &str = r#"$ sudo -E java -Droot="/greengrass/v2" -Dlog.store=FILE -jar ./GreengrassCore/lib/Greengrass.jar 
-                            --aws-region ap-southeast-1 --thing-name GreengrassQuickStartCore-1 --component-default-user ggc_user:ggc_group 
-                            --provision true
-                        "#;
 pub const FLOW: &str = r#"Provisioning AWS IoT resources for the device with IoT Thing Name: [GreengrassQuickStartCore-new]...
                         Found IoT policy "GreengrassV2IoTThingPolicy", reusing it
                         Creating keys and certificate...
@@ -145,10 +141,7 @@ fn main() {
     // install global collector configured based on RUST_LOG env var.
     tracing_subscriber::fmt::init();
 
-    // this creates a new event, outside of any spans.
-    info!( "{} {} {} {} {}",
-        args.name, args.root, args.log, args.aws_region, args.provision
-    )
+    info!( "{}", FLOW)
 }
 
 fn uploadFleetStatusServiceData(
