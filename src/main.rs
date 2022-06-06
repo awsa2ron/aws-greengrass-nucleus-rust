@@ -1,5 +1,5 @@
 use clap::Parser;
-use tracing::{info, Level};
+use tracing::{event, span, info, Level};
 use tracing_subscriber;
 
 pub enum OverallStatus {
@@ -143,7 +143,6 @@ struct Args {
 fn main() {
     let args = Args::parse();
     // install global collector configured based on RUST_LOG env var.
-    // export RUST_LOG=DEBUG
     tracing_subscriber::fmt::init();
 
     // this creates a new event, outside of any spans.
@@ -157,8 +156,29 @@ fn uploadFleetStatusServiceData(
     deploymentInformation: DeploymentInformation,
 ) {
         // if (!isConnected.get()) {
-        if (true) {
+        if true {
             info!("Not updating fleet status data since MQTT connection is interrupted.");
             return;
         }
+        // List<ComponentStatusDetails> components = new ArrayList<>();
+        // long sequenceNumber;
+
+        // synchronized (greengrassServiceSet)
+
+        // FleetStatusDetails fleetStatusDetails = FleetStatusDetails.builder()
+        //         .overallStatus(overAllStatus)
+        //         .architecture(this.architecture)
+        //         .platform(this.platform)
+        //         .thing(thingName)
+        //         .ggcVersion(deviceConfiguration.getNucleusVersion())
+        //         .sequenceNumber(sequenceNumber)
+        //         .deploymentInformation(deploymentInformation)
+        //         .build();
+        // logger.atInfo().event("fss-status-update-published").log("fleetStatusDetails {} components {}",
+        //         fleetStatusDetails, components);
+
+        // publisher.publish(fleetStatusDetails, components);
+        info!(event="fss-status-update-published", "Status update published to FSS");
+
+
 }
