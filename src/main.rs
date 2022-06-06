@@ -37,6 +37,11 @@ pub struct FleetStatusDetails {
     // }
 }
 
+impl FleetStatusDetails {
+    // fn new ()
+    
+}
+
 pub const STATUS_KEY: &str = "status";
 pub const STATUS_DETAILS_KEY: &str = "statusDetails";
 pub const ARN_FOR_STATUS_KEY: &str = "fleetConfigurationArnForStatus";
@@ -98,22 +103,22 @@ pub struct FleetStatusService {
 }
 
 pub const FLOW: &str = r#"Provisioning AWS IoT resources for the device with IoT Thing Name: [GreengrassQuickStartCore-new]...
-                        Found IoT policy "GreengrassV2IoTThingPolicy", reusing it
-                        Creating keys and certificate...
-                        Attaching policy to certificate...
-                        Creating IoT Thing "GreengrassQuickStartCore-new"...
-                        Attaching certificate to IoT thing...
+                        Found IoT policy "GreengrassV2IoTThingPolicy", reusing it -> list-policies | create-policy & get-policy
+                        Creating keys and certificate... -> create-keys-and-certificate
+                        Attaching policy to certificate...  -> attach-policy
+                        Creating IoT Thing "GreengrassQuickStartCore-new"... -> create-thing
+                        Attaching certificate to IoT thing... -> attach-thing-principal
                         Successfully provisioned AWS IoT resources for the device with IoT Thing Name: [GreengrassQuickStartCore-new]!
-                        Setting up resources for aws.greengrass.TokenExchangeService ... 
+                        Setting up resources for aws.greengrass.TokenExchangeService ... -> 
                         Attaching TES role policy to IoT thing...
                         No managed IAM policy found, looking for user defined policy...
                         IAM policy named "GreengrassV2TokenExchangeRoleAccess" already exists. Please attach it to the IAM role if not already
                         Configuring Nucleus with provisioned resource details...
-                        Root CA file found at "/greengrass/v2/rootCA.pem". Contents will be preserved.
+                        Root CA file found at "/greengrass/v2/rootCA.pem". Contents will be preserved. -> wget?
                         Downloading Root CA from "https://www.amazontrust.com/repository/AmazonRootCA1.pem"
-                        Created device configuration
+                        Created device configuration -> ?
                         Successfully configured Nucleus with provisioned resource details!
-                        Launching Nucleus...
+                        Launching Nucleus... -> mqtt publish.
                         Launched Nucleus successfully.
                         "#;
 
