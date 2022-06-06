@@ -99,6 +99,10 @@ pub struct  FleetStatusService{
 
 }
 
+pub const COMMAND:&str = r#"$ sudo -E java -Droot="/greengrass/v2" -Dlog.store=FILE -jar ./GreengrassCore/lib/Greengrass.jar 
+                            --aws-region ap-southeast-1 --thing-name GreengrassQuickStartCore-1 --component-default-user ggc_user:ggc_group 
+                            --provision true
+                        "#;
 pub const FLOW:&str = r#"Provisioning AWS IoT resources for the device with IoT Thing Name: [GreengrassQuickStartCore-new]...
                         Found IoT policy "GreengrassV2IoTThingPolicy", reusing it
                         Creating keys and certificate...
@@ -123,19 +127,25 @@ pub const FLOW:&str = r#"Provisioning AWS IoT resources for the device with IoT 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// Name of the person to greet
+    // thing-name
     #[clap(short, long)]
     name: String,
 
-    /// Number of times to greet
-    #[clap(short, long, default_value_t = 1)]
-    count: u8,
+    #[clap(short, long, default_value = "/greengrass/v2")]
+    root: String,
+
+    #[clap(short, long, default_value = "FILE")]
+    log: String,
+
+    #[clap(short, long, default_value = "ap-southeast-1")]
+    aws_region: String,
+
+    #[clap(short, long)]
+    provision: bool,
 }
 
 fn main() {
     let args = Args::parse();
 
-    for _ in 0..args.count {
-        println!("Hello {}!", args.name)
-    }
+    println!("{} {} {} {} {}", args.name, args.root, args.log, args.aws_region, args.provision)
 }
