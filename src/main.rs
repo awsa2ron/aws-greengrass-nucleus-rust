@@ -3,6 +3,7 @@ use tracing_subscriber;
 use clap::Parser;
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_greengrassv2::{Client, Error, Region, PKG_VERSION};
+use aws_greengrass_nucleus::{greengrassv2};
 
 pub enum OverallStatus {
     HEALTHY,
@@ -143,31 +144,6 @@ struct Args {
     provision: bool,
 }
 
-// Lists your IoT cores.
-// snippet-start:[iot.rust.list-core-devices]
-async fn show_cores(client: &Client) -> Result<(), Error> {
-    let resp = client.list_core_devices().send().await?;
-
-    info!("cores:");
-
-    for core in resp.core_devices().unwrap() {
-        info!(
-            "  Name:  {}",
-            core.core_device_thing_name().unwrap_or_default()
-        );
-        info!(
-            "  Status:  {:?}",
-            core.status().unwrap()
-        );
-        info!(
-            "  Last update:  {:?}",
-            core.last_status_update_timestamp().unwrap()
-        );
-    }
-
-
-    Ok(())
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -176,7 +152,7 @@ async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::init();
 
     info!( "{}", FLOW);
-
+    // iot_list_polices(&client).await
         let region_provider = RegionProviderChain::first_try(args.region.map(Region::new))
         .or_default_provider()
         .or_else(Region::new("us-west-2"));
@@ -188,10 +164,7 @@ async fn main() -> Result<(), Error> {
         );
 
     let shared_config = aws_config::from_env().region(region_provider).load().await;
-    let client = Client::new(&shared_config);
-
-    show_cores(&client).await
-
+    greengrassv2::ggv2_init(&shared_config).await
 
 }
 
