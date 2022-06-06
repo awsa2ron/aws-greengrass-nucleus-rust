@@ -1,3 +1,5 @@
+use clap::Parser;
+
 pub enum OverallStatus {
     HEALTHY,
     UNHEALTHY
@@ -117,6 +119,23 @@ pub const FLOW:&str = r#"Provisioning AWS IoT resources for the device with IoT 
                         Launched Nucleus successfully.
                         "#;
 
+/// Simple program to greet a person
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    /// Name of the person to greet
+    #[clap(short, long)]
+    name: String,
+
+    /// Number of times to greet
+    #[clap(short, long, default_value_t = 1)]
+    count: u8,
+}
+
 fn main() {
-    println!("Hello, world!");
+    let args = Args::parse();
+
+    for _ in 0..args.count {
+        println!("Hello {}!", args.name)
+    }
 }
