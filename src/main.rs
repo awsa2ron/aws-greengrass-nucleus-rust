@@ -1,9 +1,9 @@
-use tracing::{event, span, info, debug, Level};
-use tracing_subscriber;
-use clap::Parser;
 use aws_config::meta::region::RegionProviderChain;
+use aws_greengrass_nucleus::greengrassv2;
 use aws_sdk_greengrassv2::{Client, Error, Region, PKG_VERSION};
-use aws_greengrass_nucleus::{greengrassv2};
+use clap::Parser;
+use tracing::{debug, event, info, span, Level};
+use tracing_subscriber;
 
 pub enum OverallStatus {
     HEALTHY,
@@ -40,7 +40,6 @@ pub struct FleetStatusDetails {
 
 impl FleetStatusDetails {
     // fn new ()
-    
 }
 
 pub const STATUS_KEY: &str = "status";
@@ -115,7 +114,7 @@ pub const FLOW: &str = r#"Provisioning AWS IoT resources for the device with IoT
                         No managed IAM policy found, looking for user defined policy... -> IAM create-policy
                         IAM policy named "GreengrassV2TokenExchangeRoleAccess" already exists. Please attach it to the IAM role if not already
                         Configuring Nucleus with provisioned resource details... -> create-role-alias
-                        Root CA file found at "/greengrass/v2/rootCA.pem". Contents will be preserved. -> wget?
+                        Root CA file found at "/greengrass/v2/rootCA.pem". Contents will be preserved. -> reqwest crate.
                         Downloading Root CA from "https://www.amazontrust.com/repository/AmazonRootCA1.pem"
                         Created device configuration -> config file.
                         Successfully configured Nucleus with provisioned resource details!
@@ -144,58 +143,66 @@ struct Args {
     provision: bool,
 }
 
-
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let args = Args::parse();
     // install global collector configured based on RUST_LOG env var.
     tracing_subscriber::fmt::init();
 
-    info!( "{}", FLOW);
+    let body = reqwest::get("https://www.amazontrust.com/repository/AmazonRootCA1.pem")
+        .await
+        .unwrap()
+        .text()
+        .await;
+
+    println!("body = {:?}", body);
+
+    info!("{}", FLOW);
+
     // iot_list_polices(&client).await
-        let region_provider = RegionProviderChain::first_try(args.region.map(Region::new))
+    let region_provider = RegionProviderChain::first_try(args.region.map(Region::new))
         .or_default_provider()
         .or_else(Region::new("us-west-2"));
 
-        debug!("IoT client version: {}", PKG_VERSION);
-        debug!(
-            "Region:             {}",
-            region_provider.region().await.unwrap().as_ref()
-        );
+    debug!("IoT client version: {}", PKG_VERSION);
+    debug!(
+        "Region:             {}",
+        region_provider.region().await.unwrap().as_ref()
+    );
 
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     greengrassv2::ggv2_init(&shared_config).await
-
 }
 
 fn uploadFleetStatusServiceData(
     overAllStatus: OverallStatus,
     deploymentInformation: DeploymentInformation,
 ) {
-        // if (!isConnected.get()) {
-        if true {
-            info!("Not updating fleet status data since MQTT connection is interrupted.");
-            return;
-        }
-        // List<ComponentStatusDetails> components = new ArrayList<>();
-        // long sequenceNumber;
+    // if (!isConnected.get()) {
+    if true {
+        info!("Not updating fleet status data since MQTT connection is interrupted.");
+        return;
+    }
+    // List<ComponentStatusDetails> components = new ArrayList<>();
+    // long sequenceNumber;
 
-        // synchronized (greengrassServiceSet)
+    // synchronized (greengrassServiceSet)
 
-        // FleetStatusDetails fleetStatusDetails = FleetStatusDetails.builder()
-        //         .overallStatus(overAllStatus)
-        //         .architecture(this.architecture)
-        //         .platform(this.platform)
-        //         .thing(thingName)
-        //         .ggcVersion(deviceConfiguration.getNucleusVersion())
-        //         .sequenceNumber(sequenceNumber)
-        //         .deploymentInformation(deploymentInformation)
-        //         .build();
-        // logger.atInfo().event("fss-status-update-published").log("fleetStatusDetails {} components {}",
-        //         fleetStatusDetails, components);
+    // FleetStatusDetails fleetStatusDetails = FleetStatusDetails.builder()
+    //         .overallStatus(overAllStatus)
+    //         .architecture(this.architecture)
+    //         .platform(this.platform)
+    //         .thing(thingName)
+    //         .ggcVersion(deviceConfiguration.getNucleusVersion())
+    //         .sequenceNumber(sequenceNumber)
+    //         .deploymentInformation(deploymentInformation)
+    //         .build();
+    // logger.atInfo().event("fss-status-update-published").log("fleetStatusDetails {} components {}",
+    //         fleetStatusDetails, components);
 
-        // publisher.publish(fleetStatusDetails, components);
-        info!(event="fss-status-update-published", "Status update published to FSS");
-
-
+    // publisher.publish(fleetStatusDetails, components);
+    info!(
+        event = "fss-status-update-published",
+        "Status update published to FSS"
+    );
 }

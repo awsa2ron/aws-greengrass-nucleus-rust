@@ -1,12 +1,9 @@
-use tracing::{event, span, info, debug, Level};
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_greengrassv2::{Client, Error, Region, PKG_VERSION};
+use tracing::{debug, event, info, span, Level};
 
-pub async fn ggv2_init(shared_config:&aws_types::SdkConfig) -> Result<(), Error> {
-
-
+pub async fn ggv2_init(shared_config: &aws_types::SdkConfig) -> Result<(), Error> {
     let client = Client::new(&shared_config);
-
 
     ggv2_list_core_devices(&client).await
 }
@@ -22,17 +19,12 @@ async fn ggv2_list_core_devices(client: &Client) -> Result<(), Error> {
             "  Name:  {}",
             core.core_device_thing_name().unwrap_or_default()
         );
-        info!(
-            "  Status:  {:?}",
-            core.status().unwrap()
-        );
+        info!("  Status:  {:?}", core.status().unwrap());
         info!(
             "  Last update:  {:?}",
             core.last_status_update_timestamp().unwrap()
         );
     }
 
-
     Ok(())
 }
-
