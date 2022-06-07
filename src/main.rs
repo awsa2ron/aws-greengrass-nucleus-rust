@@ -39,7 +39,7 @@ pub struct FleetStatusDetails {
 }
 
 impl FleetStatusDetails {
-    // fn new ()
+    fn new () {}
 }
 
 pub const STATUS_KEY: &str = "status";
@@ -163,12 +163,6 @@ async fn main() -> Result<(), Error> {
     let region_provider = RegionProviderChain::first_try(args.region.map(Region::new))
         .or_default_provider()
         .or_else(Region::new("us-west-2"));
-
-    debug!("IoT client version: {}", PKG_VERSION);
-    debug!(
-        "Region:             {}",
-        region_provider.region().await.unwrap().as_ref()
-    );
 
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     greengrassv2::ggv2_init(&shared_config).await
