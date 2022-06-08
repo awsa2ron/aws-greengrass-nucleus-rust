@@ -1,6 +1,8 @@
 mod greengrassv2;
 mod iot;
 
+use std::path::Path;
+
 use anyhow::Ok;
 use aws_config::meta::region::RegionProviderChain;
 use aws_types::region::Region;
@@ -39,4 +41,26 @@ pub async fn init(region: RegionProviderChain) {
 
     ggv2::ggv2_init(&shared_config).await;
 
+}
+
+fn updateKernelConfigWithIotConfiguration() {
+        // rootDir = kernel.getNucleusPaths().rootPath();
+        let rootDir = Path::new("/greengrass/v2");
+        let caFilePath = rootDir.join("rootCA.pem");
+        let privKeyFilePath = rootDir.join("privKey.key");
+        let certFilePath = rootDir.join("thingCert.crt");
+
+        // downloadRootCAToFile(caFilePath.toFile());
+        // try (CommitableFile cf = CommitableFile.of(privKeyFilePath, true)) {
+        //     cf.write(thing.keyPair.privateKey().getBytes(StandardCharsets.UTF_8));
+        // }
+        // try (CommitableFile cf = CommitableFile.of(certFilePath, true)) {
+        //     cf.write(thing.certificatePem.getBytes(StandardCharsets.UTF_8));
+        // }
+
+        // new DeviceConfiguration(kernel, thing.thingName, thing.dataEndpoint, thing.credEndpoint,
+        //         privKeyFilePath.toString(), certFilePath.toString(), caFilePath.toString(), awsRegion, roleAliasName);
+        // // Make sure tlog persists the device configuration
+        // kernel.getContext().waitForPublishQueueToClear();
+        // outStream.println("Created device configuration");
 }
