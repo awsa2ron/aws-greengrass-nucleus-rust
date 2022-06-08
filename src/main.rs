@@ -1,5 +1,5 @@
 use anyhow::{Result, Error};
-use aws_greengrass_nucleus::{es, provisioning};
+use aws_greengrass_nucleus::{easysetup, provisioning};
 use aws_config::meta::region::RegionProviderChain;
 use aws_types::region::Region;
 use clap::Parser;
@@ -42,7 +42,7 @@ async fn main() -> Result<(), Error> {
     provisioning::print_flow();
     provisioning::init(region_provider);
 
-    es::downloadRootCAToFile(Path::new("rootCA.pem")).await;
+    easysetup::downloadRootCAToFile(Path::new("rootCA.pem")).await;
 
     loop {};
     Ok(())
