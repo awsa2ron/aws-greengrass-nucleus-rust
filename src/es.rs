@@ -43,17 +43,13 @@ const E2E_TESTS_THING_NAME_PREFIX: &str = "E2ETestsIotThing";
  */
 pub async fn downloadRootCAToFile(path: &Path) {
     if Path::new(path).exists() {
-        info!("Root CA file found at . Contents will be preserved.%n");
+        info!("Root CA file found at . Contents will be preserved.");
     }
     info!("Downloading Root CA from {}", ROOT_CA_URL);
 
     // TODO: append
 
-    let body = reqwest::get(ROOT_CA_URL)
-        .await
-        .unwrap()
-        .text()
-        .await;
+    let body = reqwest::get(ROOT_CA_URL).await.unwrap().text().await;
 
     debug!("body = {:?}", &body);
     fs::write(path, body.unwrap()).expect("Unable to write file");
@@ -61,7 +57,7 @@ pub async fn downloadRootCAToFile(path: &Path) {
     // downloadFileFromURL(ROOT_CA_URL, path);
     // removeDuplicateCertificates(f);
     // Do not block as the root CA file may have been manually provisioned
-    info!("Failed to download Root CA - %s%n");
+    info!("Failed to download Root CA.");
 }
 
 fn downloadFileFromURL(url: &str, path: &Path) {

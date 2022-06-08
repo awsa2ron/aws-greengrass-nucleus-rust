@@ -1,10 +1,10 @@
-use std::path::Path;
-use anyhow::Result;
+use anyhow::{Result, Error};
+use aws_greengrass_nucleus::{es, provisioning};
 use aws_config::meta::region::RegionProviderChain;
-use aws_greengrass_nucleus::{greengrassv2, es};
-use aws_sdk_greengrassv2::{Client, Error, Region, PKG_VERSION};
+use aws_types::region::Region;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use tracing::{debug, event, info, span, Level};
 use tracing_subscriber;
 
@@ -31,28 +31,19 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    // GreengrassSetup greengrassSetup = new GreengrassSetup(System.out, System.err, args);
-    // // try {
-    //     greengrassSetup.parseArgs();
-    //     greengrassSetup.performSetup();
-    // // } catch (Throwable t) {
-    // //     logger.atError().setCause(t).log("Error while trying to setup Greengrass Nucleus");
-    // //     System.err.println("Error while trying to setup Greengrass Nucleus");
-    // //     t.printStackTrace(greengrassSetup.errStream);
-    // //     System.exit(1);
-    // // }
-
     let args = Args::parse();
-    // install global collector configured based on RUST_LOG env var.
+
     tracing_subscriber::fmt::init();
 
-    es::downloadRootCAToFile(Path::new("rootCA.pem")).await;
-
-    // iot_list_polices(&client).await
     let region_provider = RegionProviderChain::first_try(args.region.map(Region::new))
         .or_default_provider()
         .or_else(Region::new("us-west-2"));
 
-    let shared_config = aws_config::from_env().region(region_provider).load().await;
-    greengrassv2::ggv2_init(&shared_config).await
+    provisioning::print_flow();
+    provisioning::init(region_provider);
+
+    es::downloadRootCAToFile(Path::new("rootCA.pem")).await;
+
+    loop {};
+    Ok(())
 }
