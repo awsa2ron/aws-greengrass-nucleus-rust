@@ -1,11 +1,5 @@
-use aws_config::meta::region::RegionProviderChain;
-use aws_greengrass_nucleus::greengrassv2;
-use aws_sdk_greengrassv2::{Client, Error, Region, PKG_VERSION};
-use clap::Parser;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, event, info, span, Level};
-use tracing_subscriber;
-use aws_greengrass_nucleus::config::*;
 // implements Chunkable<ComponentStatusDetails>
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FleetStatusDetails {
