@@ -49,7 +49,7 @@ pub async fn downloadRootCAToFile(path: &Path) {
 
     // TODO: append
 
-    let body = reqwest::get("https://www.amazontrust.com/repository/AmazonRootCA1.pem")
+    let body = reqwest::get(ROOT_CA_URL)
         .await
         .unwrap()
         .text()

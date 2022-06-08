@@ -1,6 +1,7 @@
+use std::path::Path;
 use anyhow::Result;
 use aws_config::meta::region::RegionProviderChain;
-use aws_greengrass_nucleus::greengrassv2;
+use aws_greengrass_nucleus::{greengrassv2, es};
 use aws_sdk_greengrassv2::{Client, Error, Region, PKG_VERSION};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
@@ -45,7 +46,7 @@ async fn main() -> Result<(), Error> {
     // install global collector configured based on RUST_LOG env var.
     tracing_subscriber::fmt::init();
 
-    // downloadRootCAToFile("rootCA.pem");
+    es::downloadRootCAToFile(Path::new("rootCA.pem")).await;
 
     // iot_list_polices(&client).await
     let region_provider = RegionProviderChain::first_try(args.region.map(Region::new))
