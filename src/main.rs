@@ -12,9 +12,6 @@ use tracing_subscriber;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    #[clap(short, long, default_value = "FILE")]
-    log: String,
-
     // The AWS Region to use. The AWS IoT Greengrass Core software uses this Region
     // to retrieve or create the AWS resources that it requires
     #[clap(long)]
@@ -124,6 +121,7 @@ async fn main() -> Result<(), Error> {
     let args = Args::parse();
 
     tracing_subscriber::fmt::init();
+    easysetup::performSetup(args.provision);
 
     let region_provider = RegionProviderChain::first_try(args.aws_region.map(Region::new))
         .or_default_provider()
@@ -133,6 +131,7 @@ async fn main() -> Result<(), Error> {
     provisioning::init(region_provider);
 
     easysetup::downloadRootCAToFile(Path::new("rootCA.pem")).await;
+
 
     loop {};
     Ok(())
