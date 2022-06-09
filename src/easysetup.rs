@@ -1,4 +1,6 @@
+use super::provisioning;
 use anyhow::Result;
+use aws_sdk_iot::Client;
 use std::fs;
 use std::path::Path;
 use tracing::{debug, event, info, span, Level};
@@ -110,104 +112,170 @@ fn downloadFileFromURL(url: &str, path: &Path) {
 //             }
 //         }}
 
-pub fn performSetup(needProvisioning: bool) {
-        // // Describe usage of the command
-        // if (showHelp) {
-        //     info!(SHOW_HELP_RESPONSE);
-        //     return;
+pub async fn performSetup(needProvisioning: bool) {
+    // // Describe usage of the command
+    // if (showHelp) {
+    //     info!(SHOW_HELP_RESPONSE);
+    //     return;
+    // }
+    // if (showVersion) {
+    //     // Use getVersionFromBuildMetadataFile so that we don't need to startup the Nucleus which is slow and will
+    //     // start creating files and directories which may not be desired
+    //     info!(String.format(SHOW_VERSION_RESPONSE,
+    //             DeviceConfiguration.getVersionFromBuildRecipeFile()));
+    //     return;
+    // }
+
+    // if (kernel == null) {
+    //     kernel = new Kernel();
+    // }
+    // kernel.parseArgs(kernelArgs.toArray(new String[]{}));
+
+    // try {
+    //     IotSdkClientFactory.EnvironmentStage.fromString(environmentStage);
+    // } catch (InvalidEnvironmentStageException e) {
+    //     throw new RuntimeException(e);
+    // }
+
+    // if (!Utils.isEmpty(trustedPluginPaths)) {
+    //     copyTrustedPlugins(kernel, trustedPluginPaths);
+    // }
+    // DeviceConfiguration deviceConfiguration = kernel.getContext().get(DeviceConfiguration.class);
+    if (needProvisioning) {
+        // if (Utils.isEmpty(awsRegion)) {
+        //     awsRegion = Coerce.toString(deviceConfiguration.getAWSRegion());
         // }
-        // if (showVersion) {
-        //     // Use getVersionFromBuildMetadataFile so that we don't need to startup the Nucleus which is slow and will
-        //     // start creating files and directories which may not be desired
-        //     info!(String.format(SHOW_VERSION_RESPONSE,
-        //             DeviceConfiguration.getVersionFromBuildRecipeFile()));
-        //     return;
+
+        // if (Utils.isEmpty(awsRegion)) {
+        //     throw new RuntimeException("Required input aws region not provided for provisioning");
         // }
 
-        // if (kernel == null) {
-        //     kernel = new Kernel();
-        // }
-        // kernel.parseArgs(kernelArgs.toArray(new String[]{}));
+        // this.deviceProvisioningHelper = new DeviceProvisioningHelper(awsRegion, environmentStage, this.outStream);
+        // provision(kernel);
+        provision();
+    }
 
-        // try {
-        //     IotSdkClientFactory.EnvironmentStage.fromString(environmentStage);
-        // } catch (InvalidEnvironmentStageException e) {
-        //     throw new RuntimeException(e);
-        // }
+    // // Attempt this only after config file and Nucleus args have been parsed
+    // setComponentDefaultUserAndGroup(deviceConfiguration);
 
-        // if (!Utils.isEmpty(trustedPluginPaths)) {
-        //     copyTrustedPlugins(kernel, trustedPluginPaths);
-        // }
-        // DeviceConfiguration deviceConfiguration = kernel.getContext().get(DeviceConfiguration.class);
-        if (needProvisioning) {
-            // if (Utils.isEmpty(awsRegion)) {
-            //     awsRegion = Coerce.toString(deviceConfiguration.getAWSRegion());
-            // }
-
-            // if (Utils.isEmpty(awsRegion)) {
-            //     throw new RuntimeException("Required input aws region not provided for provisioning");
-            // }
-
-            // this.deviceProvisioningHelper = new DeviceProvisioningHelper(awsRegion, environmentStage, this.outStream);
-            // provision(kernel);
-            provision();
-        }
-
-        // // Attempt this only after config file and Nucleus args have been parsed
-        // setComponentDefaultUserAndGroup(deviceConfiguration);
-
-        // if (setupSystemService) {
-        //     kernel.getContext().get(KernelLifecycle.class).softShutdown(30);
-        //     boolean ok = kernel.getContext().get(SystemServiceUtilsFactory.class).getInstance()
-        //             .setupSystemService(kernel.getContext().get(KernelAlternatives.class));
-        //     if (ok) {
-        //         info!("Successfully set up Nucleus as a system service");
-        //         // Nucleus will be launched by OS as a service
-        //     } else {
-        //         info!("Unable to set up Nucleus as a system service");
-        //     }
-        //     kernel.shutdown();
-        //     return;
-        // }
-        // if (!kernelStart) {
-        //     info!("Nucleus start set to false, exiting...");
-        //     kernel.shutdown();
-        //     return;
-        // }
-        info!("Launching Nucleus...");
-        // kernel.launch();
-        info!("Launched Nucleus successfully.");
-
+    // if (setupSystemService) {
+    //     kernel.getContext().get(KernelLifecycle.class).softShutdown(30);
+    //     boolean ok = kernel.getContext().get(SystemServiceUtilsFactory.class).getInstance()
+    //             .setupSystemService(kernel.getContext().get(KernelAlternatives.class));
+    //     if (ok) {
+    //         info!("Successfully set up Nucleus as a system service");
+    //         // Nucleus will be launched by OS as a service
+    //     } else {
+    //         info!("Unable to set up Nucleus as a system service");
+    //     }
+    //     kernel.shutdown();
+    //     return;
+    // }
+    // if (!kernelStart) {
+    //     info!("Nucleus start set to false, exiting...");
+    //     kernel.shutdown();
+    //     return;
+    // }
+    info!("Launching Nucleus...");
+    // kernel.launch();
+    info!("Launched Nucleus successfully.");
 }
 
-fn provision() {
-        info!("Provisioning AWS IoT resources for the device with IoT Thing Name: [%s]...%n");
-        // final ThingInfo thingInfo =
-        //         deviceProvisioningHelper.createThing(deviceProvisioningHelper.getIotClient(), thingPolicyName,
-        //                 thingName);
-        // info!("Successfully provisioned AWS IoT resources for the device with IoT Thing Name: [%s]!%n",
-        //         thingName);
-        // if (!Utils.isEmpty(thingGroupName)) {
-        //     info!("Adding IoT Thing [%s] into Thing Group: [%s]...%n", thingName, thingGroupName);
-        //     deviceProvisioningHelper
-        //             .addThingToGroup(deviceProvisioningHelper.getIotClient(), thingName, thingGroupName);
-        //     info!("Successfully added Thing into Thing Group: [%s]%n", thingGroupName);
-        // }
-        // info!("Setting up resources for %s ... %n", TokenExchangeService.TOKEN_EXCHANGE_SERVICE_TOPICS);
-        info!("Setting up resources for %s ... %n");
-        // deviceProvisioningHelper.setupIoTRoleForTes(tesRoleName, tesRoleAliasName, thingInfo.getCertificateArn());
-        // deviceProvisioningHelper.createAndAttachRolePolicy(tesRoleName, Region.of(awsRegion));
-        // info!("Configuring Nucleus with provisioned resource details...");
-        // deviceProvisioningHelper.updateKernelConfigWithIotConfiguration(kernel, thingInfo, awsRegion, tesRoleAliasName);
-        // info!("Successfully configured Nucleus with provisioned resource details!");
-        // if (deployDevTools) {
-        //     deviceProvisioningHelper.createInitialDeploymentIfNeeded(thingInfo, thingGroupName,
-        //             kernel.getContext().get(DeviceConfiguration.class).getNucleusVersion());
-        // }
+async fn provision() {
+    info!("Provisioning AWS IoT resources for the device with IoT Thing Name: [%s]...%n");
+    // final ThingInfo thingInfo =
+    //         deviceProvisioningHelper.createThing(deviceProvisioningHelper.getIotClient(), thingPolicyName,
+    //                 thingName);
+    info!("Successfully provisioned AWS IoT resources for the device with IoT Thing Name: [%s]!%n");
+    // info!("Successfully provisioned AWS IoT resources for the device with IoT Thing Name: [%s]!%n",
+    //         thingName);
+    // if (!Utils.isEmpty(thingGroupName)) {
+    //     info!("Adding IoT Thing [%s] into Thing Group: [%s]...%n", thingName, thingGroupName);
+    //     deviceProvisioningHelper
+    //             .addThingToGroup(deviceProvisioningHelper.getIotClient(), thingName, thingGroupName);
+    //     info!("Successfully added Thing into Thing Group: [%s]%n", thingGroupName);
+    // }
+    // info!("Setting up resources for %s ... %n", TokenExchangeService.TOKEN_EXCHANGE_SERVICE_TOPICS);
+    info!("Setting up resources for %s ... %n");
+    // deviceProvisioningHelper.setupIoTRoleForTes(tesRoleName, tesRoleAliasName, thingInfo.getCertificateArn());
+    // deviceProvisioningHelper.createAndAttachRolePolicy(tesRoleName, Region.of(awsRegion));
+    info!("Configuring Nucleus with provisioned resource details...");
+    // deviceProvisioningHelper.updateKernelConfigWithIotConfiguration(kernel, thingInfo, awsRegion, tesRoleAliasName);
+    updateKernelConfigWithIotConfiguration();
+    info!("Successfully configured Nucleus with provisioned resource details!");
+    // if (deployDevTools) {
+    //     deviceProvisioningHelper.createInitialDeploymentIfNeeded(thingInfo, thingGroupName,
+    //             kernel.getContext().get(DeviceConfiguration.class).getNucleusVersion());
+    // }
 
-        // // Dump config since we've just provisioned so that the bootstrap config will enable us to
-        // // reach the cloud when needed. Must do this now because we normally would never overwrite the bootstrap
-        // // file, however we need to do it since we've only just learned about our endpoints, certs, etc.
-        // kernel.writeEffectiveConfigAsTransactionLog(kernel.getNucleusPaths().configPath()
-        //         .resolve(Kernel.DEFAULT_BOOTSTRAP_CONFIG_TLOG_FILE));
+    // // Dump config since we've just provisioned so that the bootstrap config will enable us to
+    // // reach the cloud when needed. Must do this now because we normally would never overwrite the bootstrap
+    // // file, however we need to do it since we've only just learned about our endpoints, certs, etc.
+    // kernel.writeEffectiveConfigAsTransactionLog(kernel.getNucleusPaths().configPath()
+    //         .resolve(Kernel.DEFAULT_BOOTSTRAP_CONFIG_TLOG_FILE));
+}
+
+fn updateKernelConfigWithIotConfiguration() {
+    // rootDir = kernel.getNucleusPaths().rootPath();
+    let rootDir = Path::new("/greengrass/v2");
+    let caFilePath = rootDir.join("rootCA.pem");
+    let privKeyFilePath = rootDir.join("privKey.key");
+    let certFilePath = rootDir.join("thingCert.crt");
+
+    // downloadRootCAToFile(caFilePath.toFile());
+    // try (CommitableFile cf = CommitableFile.of(privKeyFilePath, true)) {
+    //     cf.write(thing.keyPair.privateKey().getBytes(StandardCharsets.UTF_8));
+    // }
+    // try (CommitableFile cf = CommitableFile.of(certFilePath, true)) {
+    //     cf.write(thing.certificatePem.getBytes(StandardCharsets.UTF_8));
+    // }
+
+    // new DeviceConfiguration(kernel, thing.thingName, thing.dataEndpoint, thing.credEndpoint,
+    //         privKeyFilePath.toString(), certFilePath.toString(), caFilePath.toString(), awsRegion, roleAliasName);
+    // // Make sure tlog persists the device configuration
+    // kernel.getContext().waitForPublishQueueToClear();
+    // info!("Created device configuration");
+}
+pub async fn createThing(client: Client, policyName: &str, thingName: &str) {
+    // provisioning::iot::create_thing();
+    // Find or create IoT policy
+    provisioning::iot::get_policy(&client, &policyName)
+        .await
+        .unwrap_or_else(|error| {
+            info!("Error is {}", error);
+        });
+    info!("Found IoT policy \"%s\", reusing it%n");
+    // info!("Creating new IoT policy \"%s\"%n", policyName);
+    // client.createPolicy(CreatePolicyRequest.builder().policyName(policyName).policyDocument(
+    //         "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n"
+    //                 + "      \"Effect\": \"Allow\",\n      \"Action\": [\n"
+    //                 + "                \"iot:Connect\",\n                \"iot:Publish\",\n"
+    //                 + "                \"iot:Subscribe\",\n                \"iot:Receive\",\n"
+    //                 + "                \"greengrass:*\"\n],\n"
+    //                 + "      \"Resource\": \"*\"\n    }\n  ]\n}")
+    //         .build());
+
+    // Create cert
+    info!("Creating keys and certificate...");
+    // CreateKeysAndCertificateResponse keyResponse =
+    //         client.createKeysAndCertificate(CreateKeysAndCertificateRequest.builder().setAsActive(true).build());
+
+    // Attach policy to cert
+    info!("Attaching policy to certificate...");
+    // client.attachPolicy(
+    //         AttachPolicyRequest.builder().policyName(policyName).target(keyResponse.certificateArn()).build());
+
+    // Create the thing and attach the cert to it
+    info!("Creating IoT Thing \"%s\"...%n");
+    // String thingArn = client.createThing(CreateThingRequest.builder().thingName(thingName).build()).thingArn();
+    info!("Attaching certificate to IoT thing...");
+    // client.attachThingPrincipal(
+    //         AttachThingPrincipalRequest.builder().thingName(thingName).principal(keyResponse.certificateArn())
+    //                 .build());
+
+    // return new ThingInfo(thingArn, thingName, keyResponse.certificateArn(), keyResponse.certificateId(),
+    //         keyResponse.certificatePem(), keyResponse.keyPair(),
+    //         client.describeEndpoint(DescribeEndpointRequest.builder().endpointType("iot:Data-ATS").build())
+    //                 .endpointAddress(), client.describeEndpoint(
+    //         DescribeEndpointRequest.builder().endpointType("iot:CredentialProvider").build()).endpointAddress());
 }

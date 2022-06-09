@@ -1,12 +1,13 @@
-use anyhow::{Result, Error};
-use aws_greengrass_nucleus::{easysetup, provisioning};
+// use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
+use aws_greengrass_nucleus::{easysetup, provisioning};
 use aws_types::region::Region;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tracing::{debug, event, info, span, Level};
 use tracing_subscriber;
+use aws_sdk_iot::{Client, Error, PKG_VERSION};
 
 // Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -30,7 +31,7 @@ struct Args {
 
     // (Optional) Specify true or false. If true, the AWS IoT Greengrass Core software registers this
     // device as an AWS IoT thing, and provisions the AWS resources that the software requires. The
-    // software provisions an AWS IoT thing, (optional) an AWS IoT thing group, a Thing Policy, an 
+    // software provisions an AWS IoT thing, (optional) an AWS IoT thing group, a Thing Policy, an
     // IAM role, and an AWS IoT role alias. Defaults to false.
     #[clap(long)]
     provision: bool,
@@ -42,16 +43,16 @@ struct Args {
     #[clap(short, long)]
     name: String,
 
-    // (Optional) The name of the AWS IoT thing group where you add this core 
-    // device's AWS IoT thing. 
+    // (Optional) The name of the AWS IoT thing group where you add this core
+    // device's AWS IoT thing.
     // If a deployment targets this thing group, this core device receives that deployment when it
     // connects to AWS IoT Greengrass. If the thing group with this name doesn't exist in your AWS
     // account, the AWS IoT Greengrass Core software creates it. Defaults to no thing group.
     #[clap(long)]
     thing_group_name: Option<String>,
 
-    // (Optional) The name of the AWS IoT Policy to attach to the core device's 
-    // AWS IoT thing. 
+    // (Optional) The name of the AWS IoT Policy to attach to the core device's
+    // AWS IoT thing.
     // If specified, then the supplied thing_policy_name is attached to the provisioned IoT Thing.
     // Otherwise a policy called GreengrassV2IoTThingPolicy is used instead. If the policy with
     // this name doesn't exist in your AWS account, the AWS IoT Greengrass Core software creates it
@@ -82,17 +83,17 @@ struct Args {
     // Defaults to false.
     #[clap(long)]
     setup_system_service: bool,
-    
+
     // (Optional) The name of ID of the system user and group that the AWS IoT Greengrass Core
     // software uses to run components. This argument accepts the user and group separated by a
     // colon, where the group is optional. For example, you can specify ggc_user:ggc_group or
     // ggc_user.
-    // * If you run as root, this defaults to the user and group that the config file defines. If the config 
+    // * If you run as root, this defaults to the user and group that the config file defines. If the config
     // file doesn't define a user and group, this defaults to ggc_user:ggc_group. If ggc_user or
     // ggc_group don't exist, the software creates them.
     // * If you run as a non_root user, the AWS IoT Greengrass Core software uses that user to run "
     // components.
-    // * If you don't specify a group, the AWS IoT Greengrass Core software uses the primary group 
+    // * If you don't specify a group, the AWS IoT Greengrass Core software uses the primary group
     // of the system user
     #[clap(long)]
     component_default_user: Option<String>,
@@ -119,20 +120,23 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let args = Args::parse();
-
-    tracing_subscriber::fmt::init();
-    easysetup::performSetup(args.provision);
-
     let region_provider = RegionProviderChain::first_try(args.aws_region.map(Region::new))
         .or_default_provider()
         .or_else(Region::new("us_west_2"));
 
-    provisioning::print_flow();
-    provisioning::init(region_provider);
+    tracing_subscriber::fmt::init();
+
+    easysetup::performSetup(args.provision);
+
+    let shared_config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&shared_config);
+
+    easysetup::createThing(client, &args.name, &args.name).await;
+    // provisioning::print_flow();
+    // provisioning::init(region_provider).await;
 
     easysetup::downloadRootCAToFile(Path::new("rootCA.pem")).await;
 
-
-    loop {};
+    loop {}
     Ok(())
 }
