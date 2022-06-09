@@ -1,13 +1,13 @@
 // use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_greengrass_nucleus::{easysetup, provisioning};
+use aws_sdk_iot::{Client, Error, PKG_VERSION};
 use aws_types::region::Region;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tracing::{debug, event, info, span, Level};
 use tracing_subscriber;
-use aws_sdk_iot::{Client, Error, PKG_VERSION};
 
 // Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -131,12 +131,12 @@ async fn main() -> Result<(), Error> {
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&shared_config);
 
-    easysetup::createThing(client, &args.name, &args.name).await;
-    // provisioning::print_flow();
-    // provisioning::init(region_provider).await;
+    tokio::join!(
+        easysetup::createThing(client, &args.name, &args.name),
+        // provisioning::print_flow();
+        // provisioning::init(region_provider).await;
+        easysetup::downloadRootCAToFile(Path::new("rootCA.pem"))
+    );
 
-    easysetup::downloadRootCAToFile(Path::new("rootCA.pem")).await;
-
-    loop {}
     Ok(())
 }

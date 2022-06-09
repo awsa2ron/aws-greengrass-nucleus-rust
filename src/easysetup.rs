@@ -59,7 +59,7 @@ pub async fn downloadRootCAToFile(path: &Path) {
     // downloadFileFromURL(ROOT_CA_URL, path);
     // removeDuplicateCertificates(f);
     // Do not block as the root CA file may have been manually provisioned
-    info!("Failed to download Root CA.");
+    // info!("Failed to download Root CA.");
 }
 
 fn downloadFileFromURL(url: &str, path: &Path) {
