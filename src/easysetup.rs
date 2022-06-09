@@ -274,7 +274,6 @@ pub async fn createThing(client: Client, policyName: &str, thingName: &str) {
     // Create cert
     info!("Creating keys and certificate...");
 
-
     // Attach policy to cert
     info!("Attaching policy to certificate...");
     // client.attachPolicy(

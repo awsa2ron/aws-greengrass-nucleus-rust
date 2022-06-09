@@ -76,18 +76,12 @@ pub async fn create_keys_certificates(
     fs::write(pub_key, &keys_content.public_key().unwrap()).expect("Unable to write file");
     fs::write(key, &keys_content.private_key().unwrap()).expect("Unable to write file");
 
-    println!(
-        "  certificate:  {}",
-        &cert_content
-    );
+    println!("  certificate:  {}", &cert_content);
     println!(
         "  ARN:   {}",
         resp.certificate_arn().as_deref().unwrap_or_default()
     );
-    println!(
-        "  key pair:   {:#?}",
-        resp.key_pair().as_deref().unwrap()
-    );
+    println!("  key pair:   {:#?}", resp.key_pair().as_deref().unwrap());
     println!(
         "  Id:   {}",
         resp.certificate_id().as_deref().unwrap_or_default()
