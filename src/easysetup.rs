@@ -237,28 +237,43 @@ fn updateKernelConfigWithIotConfiguration() {
     // info!("Created device configuration");
 }
 pub async fn createThing(client: Client, policyName: &str, thingName: &str) {
-    // provisioning::iot::create_thing();
     // Find or create IoT policy
     provisioning::iot::get_policy(&client, &policyName)
         .await
         .unwrap_or_else(|error| {
             info!("Error is {}", error);
         });
-    info!("Found IoT policy \"%s\", reusing it%n");
-    // info!("Creating new IoT policy \"%s\"%n", policyName);
-    // client.createPolicy(CreatePolicyRequest.builder().policyName(policyName).policyDocument(
-    //         "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n"
-    //                 + "      \"Effect\": \"Allow\",\n      \"Action\": [\n"
-    //                 + "                \"iot:Connect\",\n                \"iot:Publish\",\n"
-    //                 + "                \"iot:Subscribe\",\n                \"iot:Receive\",\n"
-    //                 + "                \"greengrass:*\"\n],\n"
-    //                 + "      \"Resource\": \"*\"\n    }\n  ]\n}")
-    //         .build());
+    info!("Found IoT policy , reusing it%n");
+    info!("Creating new IoT policy %n");
+
+    provisioning::iot::create_policy(
+        &client,
+        &policyName,
+        r#"{
+                "Version":"2012-10-17",
+                "Statement":[
+                    {
+                        "Effect":"Allow",
+                        "Action":[
+                            "iot:Connect",
+                            "iot:Publish",
+                            "iot:Subscribe",
+                            "iot:Receive",
+                            "greengrass:*"
+                        ],
+                        "Resource":"*"
+                    }
+                ]
+                }"#,
+    )
+    .await
+    .unwrap_or_else(|error| {
+        info!("Error is {}", error);
+    });
 
     // Create cert
     info!("Creating keys and certificate...");
-    // CreateKeysAndCertificateResponse keyResponse =
-    //         client.createKeysAndCertificate(CreateKeysAndCertificateRequest.builder().setAsActive(true).build());
+
 
     // Attach policy to cert
     info!("Attaching policy to certificate...");
@@ -266,7 +281,7 @@ pub async fn createThing(client: Client, policyName: &str, thingName: &str) {
     //         AttachPolicyRequest.builder().policyName(policyName).target(keyResponse.certificateArn()).build());
 
     // Create the thing and attach the cert to it
-    info!("Creating IoT Thing \"%s\"...%n");
+    info!("Creating IoT Thing ...%n");
     // String thingArn = client.createThing(CreateThingRequest.builder().thingName(thingName).build()).thingArn();
     info!("Attaching certificate to IoT thing...");
     // client.attachThingPrincipal(
