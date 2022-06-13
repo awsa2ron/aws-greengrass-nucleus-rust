@@ -279,7 +279,7 @@ pub async fn createThing(client: Client, policyName: &str, thingName: &str) {
     let public_key_outfile = &provisioning::SystemConfiguration::global().privateKeyPath;
     let private_key_outfile = &provisioning::SystemConfiguration::global().privateKeyPath;
 
-    provisioning::iot::create_keys_certificates(
+    let cert_arn = provisioning::iot::create_keys_certificates(
         &client,
         certificate_pem_outfile,
         public_key_outfile,
@@ -287,18 +287,30 @@ pub async fn createThing(client: Client, policyName: &str, thingName: &str) {
         true,
     )
     .await;
+    let cert_arn = cert_arn.unwrap();
     // Attach policy to cert
     info!("Attaching policy to certificate...");
-    // client.attachPolicy(
-    //         AttachPolicyRequest.builder().policyName(policyName).target(keyResponse.certificateArn()).build());
+    provisioning::iot::attach_policy(
+        &client,
+        &policyName,
+        &cert_arn.as_str()
+
+    ).await;
 
     // Create the thing and attach the cert to it
     info!("Creating IoT Thing ...%n");
-    // String thingArn = client.createThing(CreateThingRequest.builder().thingName(thingName).build()).thingArn();
+
+    let thing_arn = provisioning::iot::create_thing(
+        &client,
+        thingName,
+    ).await;
     info!("Attaching certificate to IoT thing...");
-    // client.attachThingPrincipal(
-    //         AttachThingPrincipalRequest.builder().thingName(thingName).principal(keyResponse.certificateArn())
-    //                 .build());
+    provisioning::iot::attach_thing_principal(
+        &client,
+        &thingName,
+        &cert_arn.as_str()
+
+    ).await;
 
     // return new ThingInfo(thingArn, thingName, keyResponse.certificateArn(), keyResponse.certificateId(),
     //         keyResponse.certificatePem(), keyResponse.keyPair(),

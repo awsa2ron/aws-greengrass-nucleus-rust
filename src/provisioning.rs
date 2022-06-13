@@ -77,9 +77,9 @@ pub fn updateSystemConfiguration(
     // systemConfig.updateFromMap(updateMap, new UpdateBehaviorTree(updateBehavior, System.currentTimeMillis()));
     let sysConfig = SystemConfiguration::update(
         thing_name.to_string(),
-        caFilePath,
-        privKeyFilePath,
         certFilePath,
+        privKeyFilePath,
+        caFilePath,
     )
     .unwrap();
     SYSCONFIG.set(sysConfig).unwrap();
