@@ -1,4 +1,4 @@
-use aws_config::meta::region::RegionProviderChain;
+// use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_greengrassv2::{Client, Error, Region, PKG_VERSION};
 use tracing::{debug, event, info, span, Level};
 

@@ -1,5 +1,5 @@
 use super::provisioning;
-use anyhow::Result;
+// use anyhow::Result;
 use aws_sdk_iot::Client;
 use std::fs;
 use std::path::Path;
@@ -112,7 +112,7 @@ fn downloadFileFromURL(url: &str, path: &Path) {
 //             }
 //         }}
 
-pub async fn performSetup(needProvisioning: bool) {
+pub fn performSetup(needProvisioning: bool) {
     // // Describe usage of the command
     // if (showHelp) {
     //     info!(SHOW_HELP_RESPONSE);
@@ -141,7 +141,7 @@ pub async fn performSetup(needProvisioning: bool) {
     //     copyTrustedPlugins(kernel, trustedPluginPaths);
     // }
     // DeviceConfiguration deviceConfiguration = kernel.getContext().get(DeviceConfiguration.class);
-    if (needProvisioning) {
+    if needProvisioning {
         // if (Utils.isEmpty(awsRegion)) {
         //     awsRegion = Coerce.toString(deviceConfiguration.getAWSRegion());
         // }
@@ -181,7 +181,7 @@ pub async fn performSetup(needProvisioning: bool) {
     info!("Launched Nucleus successfully.");
 }
 
-async fn provision() {
+fn provision() {
     info!("Provisioning AWS IoT resources for the device with IoT Thing Name: [%s]...%n");
     // final ThingInfo thingInfo =
     //         deviceProvisioningHelper.createThing(deviceProvisioningHelper.getIotClient(), thingPolicyName,
@@ -230,6 +230,7 @@ fn updateKernelConfigWithIotConfiguration() {
     //     cf.write(thing.certificatePem.getBytes(StandardCharsets.UTF_8));
     // }
 
+    provisioning::updateSystemConfiguration(caFilePath, privKeyFilePath, certFilePath);
     // new DeviceConfiguration(kernel, thing.thingName, thing.dataEndpoint, thing.credEndpoint,
     //         privKeyFilePath.toString(), certFilePath.toString(), caFilePath.toString(), awsRegion, roleAliasName);
     // // Make sure tlog persists the device configuration
@@ -273,7 +274,16 @@ pub async fn createThing(client: Client, policyName: &str, thingName: &str) {
 
     // Create cert
     info!("Creating keys and certificate...");
+    //let certificate_pem_outfile = provisioning::SystemConfiguration::global().certificateFilePath;
 
+    //     provisioning::iot::create_keys_certificates(
+    //     &client,
+    //     &certificate_pem_outfile,
+    //     &public_key_outfile,
+    //     &private_key_outfile,
+    //     active,
+    // )
+    // .await;
     // Attach policy to cert
     info!("Attaching policy to certificate...");
     // client.attachPolicy(

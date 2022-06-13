@@ -1,23 +1,23 @@
 pub mod greengrassv2;
 pub mod iot;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::Ok;
 use aws_config::meta::region::RegionProviderChain;
-use greengrassv2 as ggv2;
-use tracing::{debug, event, info, span, Level};
+// use greengrassv2 as ggv2;
 use once_cell::sync::OnceCell;
+use tracing::{debug, event, info, span, Level};
 
-
-struct SystemConfiguration {
-    certificateFilePath: String,
-    privateKeyPath: String,
-    rootCAPath: String,
-    thingName: String,
+#[derive(Debug)]
+pub struct SystemConfiguration {
+    pub certificateFilePath: PathBuf,
+    pub privateKeyPath: PathBuf,
+    pub rootCAPath: PathBuf,
+    // thingName: String,
 }
 
-static SYSCONFIG: OnceCell<SystemConfiguration> = OnceCell::new();
+pub static SYSCONFIG: OnceCell<SystemConfiguration> = OnceCell::new();
 
 impl SystemConfiguration {
     /**
@@ -26,18 +26,55 @@ impl SystemConfiguration {
      * @param updateBehavior Update behavior indicating either merge or replace
      */
     pub fn global() -> &'static SystemConfiguration {
-        SYSCONFIG.get().expect("logger is not initialized")
+        SYSCONFIG
+            .get()
+            .expect("System configuration is not initialized")
     }
 
-    fn updateSystemConfiguration()  -> Result<SystemConfiguration, anyhow::Error> {
-        let ret:SystemConfiguration = SystemConfiguration{
-            certificateFilePath : "thingCert.crt".to_string(),
-            privateKeyPath : "thingCert.crt".to_string(),
-            rootCAPath : "thingCert.crt".to_string(),
-            thingName : "thingCert.crt".to_string(),
+    fn update(
+        certificateFilePath: PathBuf,
+        privateKeyPath: PathBuf,
+        rootCAPath: PathBuf,
+    ) -> Result<SystemConfiguration, anyhow::Error> {
+        let ret: SystemConfiguration = SystemConfiguration {
+            certificateFilePath,
+            privateKeyPath,
+            rootCAPath,
+            // thingName,
         };
         Ok(ret)
     }
+}
+
+/**
+ * Updates the system configuration values in kernel config as per the given {@link SystemConfiguration}.
+ * @param systemConfiguration {@link SystemConfiguration}
+ * @param updateBehavior Update behavior indicating either merge or replace
+ */
+pub fn updateSystemConfiguration(
+    caFilePath: PathBuf,
+    privKeyFilePath: PathBuf,
+    certFilePath: PathBuf,
+) {
+    //   @NonNull UpdateBehaviorTree.UpdateBehavior updateBehavior) {
+    // Map<String, Object> updateMap = new HashMap<>();
+    // if (systemConfiguration.getCertificateFilePath() != null) {
+    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_CERTIFICATE_FILE_PATH,
+    //             systemConfiguration.getCertificateFilePath());
+    // }
+    // if (systemConfiguration.getPrivateKeyPath() != null) {
+    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_PRIVATE_KEY_PATH, systemConfiguration.getPrivateKeyPath());
+    // }
+    // if (systemConfiguration.getThingName() != null) {
+    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_THING_NAME, systemConfiguration.getThingName());
+    // }
+    // if (systemConfiguration.getRootCAPath() != null) {
+    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_ROOT_CA_PATH, systemConfiguration.getRootCAPath());
+    // }
+    // Topics systemConfig = kernel.getConfig().lookupTopics(SYSTEM_NAMESPACE_KEY);
+    // systemConfig.updateFromMap(updateMap, new UpdateBehaviorTree(updateBehavior, System.currentTimeMillis()));
+    let sysConfig = SystemConfiguration::update(caFilePath, privKeyFilePath, certFilePath).unwrap();
+    SYSCONFIG.set(sysConfig).unwrap();
 }
 
 //  struct NucleusConfiguration {
@@ -61,11 +98,7 @@ pub struct ProvisionConfiguration {
     // nucleusConfiguration: OnceCell<NucleusConfiguration>,
 }
 
-
-
-impl ProvisionConfiguration {
-    
-}
+impl ProvisionConfiguration {}
 
 // pub class ProvisionContext {
 //     String provisioningPolicy;
@@ -73,9 +106,9 @@ impl ProvisionConfiguration {
 // }
 
 pub async fn init(region: RegionProviderChain) {
-    let shared_config = aws_config::from_env().region(region).load().await;
+    // let shared_config = aws_config::from_env().region(region).load().await;
 
-    ggv2::ggv2_init(&shared_config).await;
+    // ggv2::ggv2_init(&shared_config).await;
 }
 
 // const FLOW: String = r#"Provisioning AWS IoT resources for the device with IoT Thing Name: [GreengrassQuickStartCore-new]... -> describe-endpoint
@@ -97,5 +130,3 @@ pub async fn init(region: RegionProviderChain) {
 //                         Launching Nucleus... -> mqtt publish.
 //                         Launched Nucleus successfully.
 //                         "#;
-
-

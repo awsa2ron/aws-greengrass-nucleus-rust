@@ -1,4 +1,4 @@
-use aws_sdk_iot::{Client, Error, Region, PKG_VERSION};
+use aws_sdk_iot::{Client, Error, PKG_VERSION};
 use std::fs;
 
 // Get your IoT policy.
