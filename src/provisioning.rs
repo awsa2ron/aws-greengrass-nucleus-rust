@@ -1,5 +1,4 @@
 pub mod greengrassv2;
-pub mod iot;
 
 use std::path::{Path, PathBuf};
 

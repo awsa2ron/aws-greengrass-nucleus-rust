@@ -1,9 +1,21 @@
 use super::provisioning;
 // use anyhow::Result;
+use anyhow::{Error, Result};
 use aws_sdk_iot::Client;
 use std::fs;
 use std::path::Path;
 use tracing::{debug, event, info, span, Level};
+
+pub struct ThingInfo {
+    thingArn: String,
+    thingName: String,
+    certificateArn: String,
+    certificateId: String,
+    certificatePem: String,
+    // keyPair: String,
+    // dataEndpoint: String,
+    // credEndpoint: String,
+}
 
 const GG_TOKEN_EXCHANGE_ROLE_ACCESS_POLICY_SUFFIX: &str = "Access";
 const GG_TOKEN_EXCHANGE_ROLE_ACCESS_POLICY_DOCUMENT: &str = r#"{
@@ -22,6 +34,22 @@ const GG_TOKEN_EXCHANGE_ROLE_ACCESS_POLICY_DOCUMENT: &str = r#"{
             }
         ]
     }"#;
+const IOT_POLICY_DOCUMENT: &str = r#"{
+                "Version":"2012-10-17",
+                "Statement":[
+                    {
+                        "Effect":"Allow",
+                        "Action":[
+                            "iot:Connect",
+                            "iot:Publish",
+                            "iot:Subscribe",
+                            "iot:Receive",
+                            "greengrass:*"
+                        ],
+                        "Resource":"*"
+                    }
+                ]
+                }"#;
 const ROOT_CA_URL: &str = "https://www.amazontrust.com/repository/AmazonRootCA1.pem";
 const IOT_ROLE_POLICY_NAME_PREFIX: &str = "GreengrassTESCertificatePolicy";
 const GREENGRASS_CLI_COMPONENT_NAME: &str = "aws.greengrass.Cli";
@@ -43,7 +71,7 @@ const E2E_TESTS_THING_NAME_PREFIX: &str = "E2ETestsIotThing";
  *
  * To support HTTPS proxies and other custom truststore configurations, append to the file if it exists.
  */
-pub async fn downloadRootCAToFile(path: &Path) {
+pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
     if Path::new(path).exists() {
         info!("Root CA file found at . Contents will be preserved.");
     }
@@ -51,24 +79,19 @@ pub async fn downloadRootCAToFile(path: &Path) {
 
     // TODO: append
 
-    let body = reqwest::get(ROOT_CA_URL).await.unwrap().text().await;
+    // let body = reqwest::get(ROOT_CA_URL).await?.unwrap().text().await?;
 
-    debug!("body = {:?}", &body);
-    fs::write(path, body.unwrap()).expect("Unable to write file");
+    // debug!("body = {:?}", &body);
+    // fs::write(path, body.unwrap()).expect("Unable to write file");
 
     // downloadFileFromURL(ROOT_CA_URL, path);
     // removeDuplicateCertificates(f);
     // Do not block as the root CA file may have been manually provisioned
     // info!("Failed to download Root CA.");
+    Ok(())
 }
 
 fn downloadFileFromURL(url: &str, path: &Path) {
-    // let body = reqwest::get(url)
-    // .await
-    // .unwrap()
-    // .text()
-    // .await;
-
     // String certificates = new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
     // Set<String> uniqueCertificates =
     //         Arrays.stream(certificates.split(EncryptionUtils.CERTIFICATE_PEM_HEADER))
@@ -238,83 +261,86 @@ fn updateKernelConfigWithIotConfiguration(thing_name: &str) {
     // kernel.getContext().waitForPublishQueueToClear();
     // info!("Created device configuration");
 }
-pub async fn createThing(client: Client, policyName: &str, thingName: &str) {
+pub async fn createThing(
+    client: Client,
+    policyName: &str,
+    thingName: &str,
+) -> Result<ThingInfo, Error> {
     // Find or create IoT policy
-    provisioning::iot::get_policy(&client, &policyName)
-        .await
-        .unwrap_or_else(|error| {
-            info!("Error is {}", error);
-        });
-    info!("Found IoT policy , reusing it%n");
-    info!("Creating new IoT policy %n");
-
-    provisioning::iot::create_policy(
-        &client,
-        &policyName,
-        r#"{
-                "Version":"2012-10-17",
-                "Statement":[
-                    {
-                        "Effect":"Allow",
-                        "Action":[
-                            "iot:Connect",
-                            "iot:Publish",
-                            "iot:Subscribe",
-                            "iot:Receive",
-                            "greengrass:*"
-                        ],
-                        "Resource":"*"
-                    }
-                ]
-                }"#,
-    )
-    .await
-    .unwrap_or_else(|error| {
-        info!("Error is {}", error);
-    });
-
+    match client.get_policy().policy_name(thingName).send().await {
+        Ok(_) => info!("Found IoT policy {}, reusing it", policyName),
+        Err(_) => {
+            info!("Creating new IoT policy {}", policyName);
+            client
+                .create_policy()
+                .policy_name(policyName)
+                .policy_document(IOT_POLICY_DOCUMENT)
+                .send()
+                .await?;
+        }
+    }
     // Create cert
     info!("Creating keys and certificate...");
     let certificate_pem_outfile = &provisioning::SystemConfiguration::global().certificateFilePath;
-    let public_key_outfile = &provisioning::SystemConfiguration::global().privateKeyPath;
+    // let public_key_outfile = &provisioning::SystemConfiguration::global().privateKeyPath;
     let private_key_outfile = &provisioning::SystemConfiguration::global().privateKeyPath;
 
-    let cert_arn = provisioning::iot::create_keys_certificates(
-        &client,
+    let keyResponse = client
+        .create_keys_and_certificate()
+        .set_as_active(true)
+        .send()
+        .await?;
+
+    fs::write(
         certificate_pem_outfile,
-        public_key_outfile,
+        &keyResponse.certificate_pem().unwrap_or_default(),
+    )?;
+    // fs::write(public_key_outfile, resp.key_pair.unwrap().public_key().unwrap())?;
+    fs::write(
         private_key_outfile,
-        true,
-    )
-    .await;
-    let cert_arn = cert_arn.unwrap();
+        &keyResponse.key_pair.unwrap().private_key().unwrap(),
+    )?;
+
+    let certificateArn = &keyResponse.certificate_arn.unwrap();
     // Attach policy to cert
     info!("Attaching policy to certificate...");
-    provisioning::iot::attach_policy(
-        &client,
-        &policyName,
-        &cert_arn.as_str()
-
-    ).await;
+    let _resp = client
+        .attach_policy()
+        .policy_name(policyName)
+        .target(certificateArn)
+        .send()
+        .await?;
 
     // Create the thing and attach the cert to it
     info!("Creating IoT Thing ...%n");
+    let resp = client.create_thing().thing_name(thingName).send().await?;
+    let thingArn = resp.thing_arn();
 
-    let thing_arn = provisioning::iot::create_thing(
-        &client,
-        thingName,
-    ).await;
     info!("Attaching certificate to IoT thing...");
-    provisioning::iot::attach_thing_principal(
-        &client,
-        &thingName,
-        &cert_arn.as_str()
 
-    ).await;
+    let _resp = client
+        .attach_thing_principal()
+        .thing_name(thingName)
+        .principal(certificateArn)
+        .send()
+        .await?;
 
-    // return new ThingInfo(thingArn, thingName, keyResponse.certificateArn(), keyResponse.certificateId(),
-    //         keyResponse.certificatePem(), keyResponse.keyPair(),
+    let thingInfo = ThingInfo {
+        thingArn: thingArn.unwrap().to_string(),
+        thingName: thingName.to_string(),
+        // certificateArn: keyResponse.certificate_arn().unwrap().to_string(),
+        certificateArn: certificateArn.to_string(),
+        certificateId: certificateArn.to_string(),
+        certificatePem: certificateArn.to_string(),
+        // certificateId: keyResponse.certificate_id().unwrap().to_string(),
+
+        // certificatePem: keyResponse.certificate_pem().unwrap().to_string(),
+    };
+    Ok(thingInfo)
+    // , keyResponse.keyPair())
     //         client.describeEndpoint(DescribeEndpointRequest.builder().endpointType("iot:Data-ATS").build())
     //                 .endpointAddress(), client.describeEndpoint(
     //         DescribeEndpointRequest.builder().endpointType("iot:CredentialProvider").build()).endpointAddress());
+
+    // ThingInfo()
 }

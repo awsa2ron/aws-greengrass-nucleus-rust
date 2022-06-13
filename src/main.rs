@@ -1,7 +1,7 @@
-// use anyhow::{Error, Result};
+use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_greengrass_nucleus::{easysetup, provisioning};
-use aws_sdk_iot::{Client, Error, PKG_VERSION};
+use aws_sdk_iot::{Client, PKG_VERSION};
 use aws_types::region::Region;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
@@ -126,7 +126,6 @@ async fn main() -> Result<(), Error> {
 
     tracing_subscriber::fmt::init();
 
-    info!("-f used: {:?}", args.provision); // -f used: true
     easysetup::performSetup(&args.name, args.provision);
 
     let shared_config = aws_config::from_env().region(region_provider).load().await;
