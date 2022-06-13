@@ -127,7 +127,7 @@ async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::init();
 
     info!("-f used: {:?}", args.provision); // -f used: true
-    easysetup::performSetup(args.provision);
+    easysetup::performSetup(&args.name, args.provision);
 
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&shared_config);
@@ -138,7 +138,6 @@ async fn main() -> Result<(), Error> {
         // provisioning::init(region_provider).await;
         easysetup::downloadRootCAToFile(Path::new("rootCA.pem"))
     );
-
 
     Ok(())
 }

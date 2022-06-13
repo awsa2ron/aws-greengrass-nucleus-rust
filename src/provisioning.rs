@@ -14,7 +14,7 @@ pub struct SystemConfiguration {
     pub certificateFilePath: PathBuf,
     pub privateKeyPath: PathBuf,
     pub rootCAPath: PathBuf,
-    // thingName: String,
+    thingName: String,
 }
 
 pub static SYSCONFIG: OnceCell<SystemConfiguration> = OnceCell::new();
@@ -32,6 +32,7 @@ impl SystemConfiguration {
     }
 
     fn update(
+        thingName: String,
         certificateFilePath: PathBuf,
         privateKeyPath: PathBuf,
         rootCAPath: PathBuf,
@@ -40,7 +41,7 @@ impl SystemConfiguration {
             certificateFilePath,
             privateKeyPath,
             rootCAPath,
-            // thingName,
+            thingName,
         };
         Ok(ret)
     }
@@ -52,6 +53,7 @@ impl SystemConfiguration {
  * @param updateBehavior Update behavior indicating either merge or replace
  */
 pub fn updateSystemConfiguration(
+    thing_name: &str,
     caFilePath: PathBuf,
     privKeyFilePath: PathBuf,
     certFilePath: PathBuf,
@@ -73,7 +75,13 @@ pub fn updateSystemConfiguration(
     // }
     // Topics systemConfig = kernel.getConfig().lookupTopics(SYSTEM_NAMESPACE_KEY);
     // systemConfig.updateFromMap(updateMap, new UpdateBehaviorTree(updateBehavior, System.currentTimeMillis()));
-    let sysConfig = SystemConfiguration::update(caFilePath, privKeyFilePath, certFilePath).unwrap();
+    let sysConfig = SystemConfiguration::update(
+        thing_name.to_string(),
+        caFilePath,
+        privKeyFilePath,
+        certFilePath,
+    )
+    .unwrap();
     SYSCONFIG.set(sysConfig).unwrap();
 }
 

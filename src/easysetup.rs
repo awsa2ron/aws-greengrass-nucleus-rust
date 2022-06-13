@@ -112,7 +112,7 @@ fn downloadFileFromURL(url: &str, path: &Path) {
 //             }
 //         }}
 
-pub fn performSetup(needProvisioning: bool) {
+pub fn performSetup(name: &str, needProvisioning: bool) {
     // // Describe usage of the command
     // if (showHelp) {
     //     info!(SHOW_HELP_RESPONSE);
@@ -152,7 +152,7 @@ pub fn performSetup(needProvisioning: bool) {
 
         // this.deviceProvisioningHelper = new DeviceProvisioningHelper(awsRegion, environmentStage, this.outStream);
         // provision(kernel);
-        provision();
+        provision(name);
     }
 
     // // Attempt this only after config file and Nucleus args have been parsed
@@ -181,7 +181,7 @@ pub fn performSetup(needProvisioning: bool) {
     info!("Launched Nucleus successfully.");
 }
 
-fn provision() {
+fn provision(name: &str) {
     info!("Provisioning AWS IoT resources for the device with IoT Thing Name: [%s]...%n");
     // final ThingInfo thingInfo =
     //         deviceProvisioningHelper.createThing(deviceProvisioningHelper.getIotClient(), thingPolicyName,
@@ -201,7 +201,7 @@ fn provision() {
     // deviceProvisioningHelper.createAndAttachRolePolicy(tesRoleName, Region.of(awsRegion));
     info!("Configuring Nucleus with provisioned resource details...");
     // deviceProvisioningHelper.updateKernelConfigWithIotConfiguration(kernel, thingInfo, awsRegion, tesRoleAliasName);
-    updateKernelConfigWithIotConfiguration();
+    updateKernelConfigWithIotConfiguration(name);
     info!("Successfully configured Nucleus with provisioned resource details!");
     // if (deployDevTools) {
     //     deviceProvisioningHelper.createInitialDeploymentIfNeeded(thingInfo, thingGroupName,
@@ -215,9 +215,10 @@ fn provision() {
     //         .resolve(Kernel.DEFAULT_BOOTSTRAP_CONFIG_TLOG_FILE));
 }
 
-fn updateKernelConfigWithIotConfiguration() {
+fn updateKernelConfigWithIotConfiguration(thing_name: &str) {
     // rootDir = kernel.getNucleusPaths().rootPath();
-    let rootDir = Path::new("/greengrass/v2");
+    // let rootDir = Path::new("/greengrass/v2");
+    let rootDir = Path::new(".");
     let caFilePath = rootDir.join("rootCA.pem");
     let privKeyFilePath = rootDir.join("privKey.key");
     let certFilePath = rootDir.join("thingCert.crt");
@@ -230,7 +231,7 @@ fn updateKernelConfigWithIotConfiguration() {
     //     cf.write(thing.certificatePem.getBytes(StandardCharsets.UTF_8));
     // }
 
-    provisioning::updateSystemConfiguration(caFilePath, privKeyFilePath, certFilePath);
+    provisioning::updateSystemConfiguration(thing_name, caFilePath, privKeyFilePath, certFilePath);
     // new DeviceConfiguration(kernel, thing.thingName, thing.dataEndpoint, thing.credEndpoint,
     //         privKeyFilePath.toString(), certFilePath.toString(), caFilePath.toString(), awsRegion, roleAliasName);
     // // Make sure tlog persists the device configuration
@@ -274,16 +275,18 @@ pub async fn createThing(client: Client, policyName: &str, thingName: &str) {
 
     // Create cert
     info!("Creating keys and certificate...");
-    //let certificate_pem_outfile = provisioning::SystemConfiguration::global().certificateFilePath;
+    let certificate_pem_outfile = &provisioning::SystemConfiguration::global().certificateFilePath;
+    let public_key_outfile = &provisioning::SystemConfiguration::global().privateKeyPath;
+    let private_key_outfile = &provisioning::SystemConfiguration::global().privateKeyPath;
 
-    //     provisioning::iot::create_keys_certificates(
-    //     &client,
-    //     &certificate_pem_outfile,
-    //     &public_key_outfile,
-    //     &private_key_outfile,
-    //     active,
-    // )
-    // .await;
+    provisioning::iot::create_keys_certificates(
+        &client,
+        certificate_pem_outfile,
+        public_key_outfile,
+        private_key_outfile,
+        true,
+    )
+    .await;
     // Attach policy to cert
     info!("Attaching policy to certificate...");
     // client.attachPolicy(

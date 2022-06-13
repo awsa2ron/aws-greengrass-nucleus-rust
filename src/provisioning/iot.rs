@@ -1,5 +1,6 @@
 use aws_sdk_iot::{Client, Error, PKG_VERSION};
 use std::fs;
+use std::path::PathBuf;
 
 // Get your IoT policy.
 // snippet-start:[iot.rust.get-policy]
@@ -58,9 +59,9 @@ pub async fn create_policy(client: &Client, name: &str, doc: &str) -> Result<(),
 // snippet-start:[iot.rust.get-policy]
 pub async fn create_keys_certificates(
     client: &Client,
-    cert: &str,
-    pub_key: &str,
-    key: &str,
+    cert: &PathBuf,
+    pub_key: &PathBuf,
+    key: &PathBuf,
     active: bool,
 ) -> Result<(), Error> {
     let resp = client
@@ -71,10 +72,9 @@ pub async fn create_keys_certificates(
 
     let cert_content = &resp.certificate_pem().unwrap_or_default();
     let keys_content = &resp.key_pair().unwrap();
-
-    fs::write(cert, &cert_content).expect("Unable to write file");
+    fs::write(cert, &cert_content).expect("Unable to write cert");
     fs::write(pub_key, &keys_content.public_key().unwrap()).expect("Unable to write file");
-    fs::write(key, &keys_content.private_key().unwrap()).expect("Unable to write file");
+    fs::write(key, &keys_content.private_key().unwrap()).expect("Unable to write key");
 
     println!("  certificate:  {}", &cert_content);
     println!(
