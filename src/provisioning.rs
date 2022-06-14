@@ -19,24 +19,18 @@ pub struct SystemConfiguration {
 pub static SYSCONFIG: OnceCell<SystemConfiguration> = OnceCell::new();
 
 impl SystemConfiguration {
-    /**
-     * Updates the system configuration values in kernel config as per the given {@link SystemConfiguration}.
-     * @param systemConfiguration {@link SystemConfiguration}
-     * @param updateBehavior Update behavior indicating either merge or replace
-     */
     pub fn global() -> &'static SystemConfiguration {
         SYSCONFIG
             .get()
             .expect("System configuration is not initialized")
     }
-
     fn update(
         thingName: String,
         certificateFilePath: PathBuf,
         privateKeyPath: PathBuf,
         rootCAPath: PathBuf,
     ) -> Result<SystemConfiguration, anyhow::Error> {
-        let ret: SystemConfiguration = SystemConfiguration {
+        let ret = SystemConfiguration {
             certificateFilePath,
             privateKeyPath,
             rootCAPath,
@@ -84,25 +78,79 @@ pub fn updateSystemConfiguration(
     SYSCONFIG.set(sysConfig).unwrap();
 }
 
-//  struct NucleusConfiguration {
-//     awsRegion: String,
-//     iotCredentialsEndpoint: String,
-//     iotDataEndpoint: String,
-//     iotRoleAlias: String,
-// }
+#[derive(Debug)]
+pub struct NucleusConfiguration {
+    awsRegion: String,
+    iotCredentialsEndpoint: String,
+    iotDataEndpoint: String,
+    iotRoleAlias: String,
+}
+pub static NUCLEUSCONFIG: OnceCell<NucleusConfiguration> = OnceCell::new();
 
-// impl NucleusConfiguration {
-//     /**
-//      * Updates the nucleus configuration value in kernel config as per the given {@link NucleusConfiguration}.
-//      * @param nucleusConfiguration {@link NucleusConfiguration}
-//      * @param updateBehavior Update behavior indicating either merge or replace
-//      */
-//     pub fn updateNucleusConfiguration() {}
-// }
+impl NucleusConfiguration {
+    pub fn global() -> &'static NucleusConfiguration {
+        NUCLEUSCONFIG
+            .get()
+            .expect("System configuration is not initialized")
+    }
 
+    fn update(
+        awsRegion: String,
+        iotCredentialsEndpoint: String,
+        iotDataEndpoint: String,
+        iotRoleAlias: String,
+    ) -> Result<NucleusConfiguration, anyhow::Error> {
+        let ret = NucleusConfiguration {
+            awsRegion,
+            iotCredentialsEndpoint,
+            iotDataEndpoint,
+            iotRoleAlias,
+        };
+        Ok(ret)
+    }
+}
+/**
+ * Updates the nucleus configuration value in kernel config as per the given {@link NucleusConfiguration}.
+ * @param nucleusConfiguration {@link NucleusConfiguration}
+ * @param updateBehavior Update behavior indicating either merge or replace
+ */
+pub fn updateNucleusConfiguration(
+    awsRegion: String,
+    iotCredentialsEndpoint: String,
+    iotDataEndpoint: String,
+    iotRoleAlias: String,
+) {
+    // Map<String, Object> updateMap = new HashMap<>();
+    // if (nucleusConfiguration.getAwsRegion() != null) {
+    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_AWS_REGION, nucleusConfiguration.getAwsRegion());
+    // }
+    // if (nucleusConfiguration.getIotCredentialsEndpoint() != null) {
+    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_IOT_CRED_ENDPOINT, nucleusConfiguration
+    //             .getIotCredentialsEndpoint());
+    // }
+    // if (nucleusConfiguration.getIotDataEndpoint() != null) {
+    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_IOT_DATA_ENDPOINT, nucleusConfiguration
+    //             .getIotDataEndpoint());
+    // }
+    // if (nucleusConfiguration.getIotRoleAlias() != null) {
+    //     updateMap.put(DeviceConfiguration.IOT_ROLE_ALIAS_TOPIC, nucleusConfiguration.getIotRoleAlias());
+    // }
+    // String nucleusComponentName = kernel.getContext().get(DeviceConfiguration.class).getNucleusComponentName();
+    // Topics nucleusConfig = kernel.getConfig()
+    //         .lookupTopics(SERVICES_NAMESPACE_TOPIC, nucleusComponentName, CONFIGURATION_CONFIG_KEY);
+    // nucleusConfig.updateFromMap(updateMap,  new UpdateBehaviorTree(updateBehavior, System.currentTimeMillis()));
+    let nucleusConfig = NucleusConfiguration::update(
+        awsRegion.to_string(),
+        iotCredentialsEndpoint,
+        iotDataEndpoint,
+        iotRoleAlias,
+    )
+    .unwrap();
+    NUCLEUSCONFIG.set(nucleusConfig).unwrap();
+}
 pub struct ProvisionConfiguration {
     systemConfiguration: OnceCell<SystemConfiguration>,
-    // nucleusConfiguration: OnceCell<NucleusConfiguration>,
+    nucleusConfiguration: OnceCell<NucleusConfiguration>,
 }
 
 impl ProvisionConfiguration {}

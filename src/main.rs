@@ -4,6 +4,7 @@ use aws_greengrass_nucleus::{easysetup, provisioning};
 use aws_sdk_iot::{Client, PKG_VERSION};
 use aws_types::region::Region;
 use clap::Parser;
+use rumqttc::{self, AsyncClient, Key, MqttOptions, QoS, Transport};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tracing::{debug, event, info, span, Level};
@@ -137,6 +138,32 @@ async fn main() -> Result<(), Error> {
         // provisioning::init(region_provider).await;
         easysetup::downloadRootCAToFile(Path::new("rootCA.pem"))
     );
+
+    // let mut mqtt_options = MqttOptions::new(name, endpoint, 443);
+    // mqtt_options
+    //     .set_keep_alive(30)
+    //     .set_transport(Transport::tls(
+    //         fs::read(ca)?,
+    //         Some((fs::read(cert)?, Key::RSA(fs::read(key)?))),
+    //         Some(vec![AWS_IOT_MQTT_ALPN.as_bytes().to_vec()]),
+    //     ));
+
+    // let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
+    // // Received = Incoming(Publish(Topic = hello/world, Qos = AtMostOnce, Retain = false, Pkid = 0, Payload Size = 45))
+    // client
+    //     .subscribe(HELLO_WORLD_TOPIC, QoS::AtMostOnce)
+    //     .await
+    //     .unwrap();
+
+    // tokio::spawn(async move {
+    //     requests(client).await;
+    //     sleep(Duration::from_secs(3)).await;
+    // });
+
+    // loop {
+    //     let notification = eventloop.poll().await.unwrap();
+    //     println!("Received = {:?}", notification);
+    // }
 
     Ok(())
 }
