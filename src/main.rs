@@ -1,6 +1,6 @@
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
-use aws_greengrass_nucleus::{easysetup, provisioning};
+use aws_greengrass_nucleus::{config, easysetup, provisioning};
 use aws_sdk_iot::{Client, PKG_VERSION};
 use aws_types::region::Region;
 use clap::Parser;
@@ -140,6 +140,10 @@ async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::init();
 
     easysetup::performSetup(name, aws_region.unwrap(), provision, thing_policy_name).await;
+
+    config::init();
+    let endpoint = config::Config::global().endpoint.iot_ats.to_string();
+    info!("Endpoint: {}", endpoint);
 
     // tokio::join!(
     //     // easysetup::createThing(client, &name, &name),

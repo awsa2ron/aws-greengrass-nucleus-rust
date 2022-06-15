@@ -142,13 +142,12 @@ pub async fn performSetup(
     region: String,
     needProvisioning: bool,
     thing_policy_name: Option<String>,
-) {    
+) {
     let region_provider = RegionProviderChain::first_try(Region::new(region))
         .or_default_provider()
         .or_else(Region::new("us_west_2"));
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&shared_config);
-
 
     // // Describe usage of the command
     // if (showHelp) {
@@ -218,7 +217,7 @@ pub async fn performSetup(
     info!("Launched Nucleus successfully.");
 }
 
- async fn provision(client: Client, name: String,  policy_name: String) {
+async fn provision(client: Client, name: String, policy_name: String) {
     info!(
         "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
         name
@@ -254,7 +253,7 @@ pub async fn performSetup(
     //         .resolve(Kernel.DEFAULT_BOOTSTRAP_CONFIG_TLOG_FILE));
 }
 
-fn updateKernelConfigWithIotConfiguration(thing:ThingInfo) {
+fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
     // rootDir = kernel.getNucleusPaths().rootPath();
     // let rootDir = Path::new("/greengrass/v2");
     let rootDir = Path::new(".");
@@ -271,7 +270,12 @@ fn updateKernelConfigWithIotConfiguration(thing:ThingInfo) {
     //     cf.write(thing.certificatePem.getBytes(StandardCharsets.UTF_8));
     // }
 
-    provisioning::updateSystemConfiguration(thing.thingName.as_str(), caFilePath, privKeyFilePath, certFilePath);
+    provisioning::updateSystemConfiguration(
+        thing.thingName.as_str(),
+        caFilePath,
+        privKeyFilePath,
+        certFilePath,
+    );
     // provisioning::updateNucleusConfiguration(
     //     awsRegion,
     //     thing.dataEndpoint,
