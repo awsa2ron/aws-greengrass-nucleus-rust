@@ -1,25 +1,40 @@
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tracing::{debug, event, info, span, Level};
 // implements Chunkable<ComponentStatusDetails>
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FleetStatusDetails {
-    ggcVersion: String,
+    ggcVersion: &'static str,
 
-    platform: String,
+    platform: &'static str,
 
-    architecture: String,
+    architecture: &'static str,
 
     thing: String,
-
     overallStatus: OverallStatus,
 
     sequenceNumber: usize,
 
     // List<ComponentStatusDetails> componentStatusDetails,
-    deploymentInformation: DeploymentInformation,
+    deploymentInformation: String,
+    // deploymentInformation: DeploymentInformation,
     // pub void setVariablePayload(List<ComponentStatusDetails> variablePayload) {
     //     this.setComponentStatusDetails(variablePayload),
     // }
+}
+
+impl FleetStatusDetails {
+    fn new() -> Self {
+        FleetStatusDetails {
+            ggcVersion: "2.5.5",
+            platform: "linux",
+            architecture: "x86_64",
+            thing: "".to_string(),
+            overallStatus: OverallStatus::HEALTHY,
+            sequenceNumber: 5,
+            deploymentInformation: "".to_string(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -98,31 +113,27 @@ pub struct FleetStatusService {
     // ScheduledFuture<?> periodicUpdateFuture,
 }
 
-fn uploadFleetStatusServiceData(
-    overAllStatus: OverallStatus,
-    deploymentInformation: DeploymentInformation,
+pub fn uploadFleetStatusServiceData(// overAllStatus: OverallStatus,
+    // deploymentInformation: DeploymentInformation,
 ) {
     // if (!isConnected.get()) {
-    if true {
-        info!("Not updating fleet status data since MQTT connection is interrupted.");
-        return;
-    }
+    // if true {
+    //     info!("Not updating fleet status data since MQTT connection is interrupted.");
+    //     return;
+    // }
     // List<ComponentStatusDetails> components = new ArrayList<>();
     // long sequenceNumber;
 
     // synchronized (greengrassServiceSet)
 
-    // FleetStatusDetails fleetStatusDetails = FleetStatusDetails.builder()
-    //         .overallStatus(overAllStatus)
-    //         .architecture(this.architecture)
-    //         .platform(this.platform)
-    //         .thing(thingName)
-    //         .ggcVersion(deviceConfiguration.getNucleusVersion())
-    //         .sequenceNumber(sequenceNumber)
-    //         .deploymentInformation(deploymentInformation)
-    //         .build();
-    // logger.atInfo().event("fss-status-update-published").log("fleetStatusDetails {} components {}",
-    //         fleetStatusDetails, components);
+    let fleetStatusDetails = FleetStatusDetails::new();
+    info!(
+        event = "fss-status-update-published",
+        "fleetStatusDetails {:?}",
+        serde_json::to_string(&fleetStatusDetails).unwrap()
+    );
+    // info!("fss-status-update-published").log("fleetStatusDetails {} components {}");
+    // fleetStatusDetails, components);
 
     // publisher.publish(fleetStatusDetails, components);
     info!(

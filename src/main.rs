@@ -1,12 +1,15 @@
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
-use aws_greengrass_nucleus::{config, easysetup, provisioning};
+use aws_greengrass_nucleus::{config, easysetup, provisioning, status};
 use aws_sdk_iot::{Client, PKG_VERSION};
 use aws_types::region::Region;
 use clap::Parser;
 use rumqttc::{self, AsyncClient, Key, MqttOptions, QoS, Transport};
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::path::Path;
+use std::time::Duration;
+use tokio::{task, time};
 use tracing::{debug, event, info, span, Level};
 use tracing_subscriber;
 
@@ -118,6 +121,8 @@ struct Args {
     trusted_plugin: Option<String>,
 }
 
+// #[tokio::main]
+// #[cfg(feature = "use-rustls")]
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let Args {
@@ -145,37 +150,73 @@ async fn main() -> Result<(), Error> {
     let endpoint = config::Config::global().endpoint.iot_ats.to_string();
     info!("Endpoint: {}", endpoint);
 
+    status::uploadFleetStatusServiceData();
+
     // tokio::join!(
     //     // easysetup::createThing(client, &name, &name),
     //     // provisioning::print_flow();
     //     // provisioning::init(region_provider).await;
     // );
 
-    // let mut mqtt_options = MqttOptions::new(name, endpoint, 443);
-    // mqtt_options
-    //     .set_keep_alive(30)
-    //     .set_transport(Transport::tls(
-    //         fs::read(ca)?,
-    //         Some((fs::read(cert)?, Key::RSA(fs::read(key)?))),
-    //         Some(vec![AWS_IOT_MQTT_ALPN.as_bytes().to_vec()]),
-    //     ));
+    let rootDir = Path::new(".");
+    let caFilePath = rootDir.join("rootCA.pem");
+    let privKeyFilePath = rootDir.join("privKey.key");
+    let certFilePath = rootDir.join("thingCert.crt");
+    info!("{:?}", endpoint);
 
-    // let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
-    // // Received = Incoming(Publish(Topic = hello/world, Qos = AtMostOnce, Retain = false, Pkid = 0, Payload Size = 45))
-    // client
-    //     .subscribe(HELLO_WORLD_TOPIC, QoS::AtMostOnce)
-    //     .await
-    //     .unwrap();
+    let mut mqtt_options = MqttOptions::new("test-1", endpoint, 8883);
+    mqtt_options
+        .set_keep_alive(Duration::from_secs(30))
+        .set_transport(Transport::tls(
+            fs::read(caFilePath)?,
+            Some((
+                fs::read(certFilePath)?,
+                Key::RSA(fs::read(privKeyFilePath)?),
+            )),
+            None,
+        ));
 
-    // tokio::spawn(async move {
+    let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
+    // task::spawn(async move {
     //     requests(client).await;
-    //     sleep(Duration::from_secs(3)).await;
+    //     time::sleep(Duration::from_secs(3)).await;
     // });
 
     // loop {
-    //     let notification = eventloop.poll().await.unwrap();
-    //     println!("Received = {:?}", notification);
+    //     let event = eventloop.poll().await;
+    //     println!("{:?}", event.unwrap());
     // }
+    task::spawn(async move {
+        for i in 0..10 {
+            client
+                .publish("hello/world", QoS::AtLeastOnce, false, vec![i; i as usize])
+                .await
+                .unwrap();
+            time::sleep(Duration::from_millis(100)).await;
+        }
+    });
+
+    while let Ok(notification) = eventloop.poll().await {
+        println!("Received = {:?}", notification);
+    }
 
     Ok(())
+}
+
+async fn requests(client: AsyncClient) {
+    client
+        .subscribe("hello/world", QoS::AtMostOnce)
+        .await
+        .unwrap();
+
+    for i in 1..=10 {
+        client
+            .publish("hello/world", QoS::ExactlyOnce, false, vec![1; i])
+            .await
+            .unwrap();
+
+        time::sleep(Duration::from_secs(1)).await;
+    }
+
+    time::sleep(Duration::from_secs(120)).await;
 }
