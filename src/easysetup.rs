@@ -1,7 +1,9 @@
 use super::provisioning;
 // use anyhow::Result;
 use anyhow::{Error, Result};
+use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_iot::Client;
+use aws_types::region::Region;
 use std::fs;
 use std::path::Path;
 use tracing::{debug, event, info, span, Level};
@@ -135,7 +137,19 @@ fn downloadFileFromURL(url: &str, path: &Path) {
 //             }
 //         }}
 
-pub fn performSetup(name: &str, needProvisioning: bool) {
+pub async fn performSetup(
+    name: String,
+    region: String,
+    needProvisioning: bool,
+    thing_policy_name: Option<String>,
+) {    
+    let region_provider = RegionProviderChain::first_try(Region::new(region))
+        .or_default_provider()
+        .or_else(Region::new("us_west_2"));
+    let shared_config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&shared_config);
+
+
     // // Describe usage of the command
     // if (showHelp) {
     //     info!(SHOW_HELP_RESPONSE);
@@ -175,7 +189,7 @@ pub fn performSetup(name: &str, needProvisioning: bool) {
 
         // this.deviceProvisioningHelper = new DeviceProvisioningHelper(awsRegion, environmentStage, this.outStream);
         // provision(kernel);
-        provision(name);
+        provision(client, name, thing_policy_name.unwrap()).await;
     }
 
     // // Attempt this only after config file and Nucleus args have been parsed
@@ -204,14 +218,16 @@ pub fn performSetup(name: &str, needProvisioning: bool) {
     info!("Launched Nucleus successfully.");
 }
 
-fn provision(name: &str) {
-    info!("Provisioning AWS IoT resources for the device with IoT Thing Name: [%s]...%n");
-    // final ThingInfo thingInfo =
-    //         deviceProvisioningHelper.createThing(deviceProvisioningHelper.getIotClient(), thingPolicyName,
-    //                 thingName);
-    info!("Successfully provisioned AWS IoT resources for the device with IoT Thing Name: [%s]!%n");
-    // info!("Successfully provisioned AWS IoT resources for the device with IoT Thing Name: [%s]!%n",
-    //         thingName);
+ async fn provision(client: Client, name: String,  policy_name: String) {
+    info!(
+        "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
+        name
+    );
+    let thing = createThing(client, &name, &policy_name).await.unwrap();
+    info!(
+        "Successfully provisioned AWS IoT resources for the device with IoT Thing Name: {}",
+        name
+    );
     // if (!Utils.isEmpty(thingGroupName)) {
     //     info!("Adding IoT Thing [%s] into Thing Group: [%s]...%n", thingName, thingGroupName);
     //     deviceProvisioningHelper
@@ -224,7 +240,7 @@ fn provision(name: &str) {
     // deviceProvisioningHelper.createAndAttachRolePolicy(tesRoleName, Region.of(awsRegion));
     info!("Configuring Nucleus with provisioned resource details...");
     // deviceProvisioningHelper.updateKernelConfigWithIotConfiguration(kernel, thingInfo, awsRegion, tesRoleAliasName);
-    updateKernelConfigWithIotConfiguration(name);
+    updateKernelConfigWithIotConfiguration(thing);
     info!("Successfully configured Nucleus with provisioned resource details!");
     // if (deployDevTools) {
     //     deviceProvisioningHelper.createInitialDeploymentIfNeeded(thingInfo, thingGroupName,
@@ -238,7 +254,7 @@ fn provision(name: &str) {
     //         .resolve(Kernel.DEFAULT_BOOTSTRAP_CONFIG_TLOG_FILE));
 }
 
-fn updateKernelConfigWithIotConfiguration(thing_name: &str) {
+fn updateKernelConfigWithIotConfiguration(thing:ThingInfo) {
     // rootDir = kernel.getNucleusPaths().rootPath();
     // let rootDir = Path::new("/greengrass/v2");
     let rootDir = Path::new(".");
@@ -246,7 +262,8 @@ fn updateKernelConfigWithIotConfiguration(thing_name: &str) {
     let privKeyFilePath = rootDir.join("privKey.key");
     let certFilePath = rootDir.join("thingCert.crt");
 
-    // downloadRootCAToFile(caFilePath.toFile());
+    downloadRootCAToFile(Path::new("rootCA.pem"));
+
     // try (CommitableFile cf = CommitableFile.of(privKeyFilePath, true)) {
     //     cf.write(thing.keyPair.privateKey().getBytes(StandardCharsets.UTF_8));
     // }
@@ -254,17 +271,23 @@ fn updateKernelConfigWithIotConfiguration(thing_name: &str) {
     //     cf.write(thing.certificatePem.getBytes(StandardCharsets.UTF_8));
     // }
 
-    provisioning::updateSystemConfiguration(thing_name, caFilePath, privKeyFilePath, certFilePath);
+    provisioning::updateSystemConfiguration(thing.thingName.as_str(), caFilePath, privKeyFilePath, certFilePath);
+    // provisioning::updateNucleusConfiguration(
+    //     awsRegion,
+    //     thing.dataEndpoint,
+    //     thing.credEndpoint,
+    //     roleAliasName,
+    // );
     // new DeviceConfiguration(kernel, thing.thingName, thing.dataEndpoint, thing.credEndpoint,
     //         privKeyFilePath.toString(), certFilePath.toString(), caFilePath.toString(), awsRegion, roleAliasName);
     // // Make sure tlog persists the device configuration
     // kernel.getContext().waitForPublishQueueToClear();
     // info!("Created device configuration");
 }
-pub async fn createThing(
+async fn createThing(
     client: Client,
-    policyName: &str,
     thingName: &str,
+    policyName: &str,
 ) -> Result<ThingInfo, Error> {
     // Find or create IoT policy
     match client.get_policy().policy_name(thingName).send().await {
@@ -281,9 +304,14 @@ pub async fn createThing(
     }
     // Create cert
     info!("Creating keys and certificate...");
-    let certificate_pem_outfile = &provisioning::SystemConfiguration::global().certificateFilePath;
+    // let certificate_pem_outfile = &provisioning::SystemConfiguration::global().certificateFilePath;
     // let public_key_outfile = &provisioning::SystemConfiguration::global().privateKeyPath;
-    let private_key_outfile = &provisioning::SystemConfiguration::global().privateKeyPath;
+    // let private_key_outfile = &provisioning::SystemConfiguration::global().privateKeyPath;
+
+    let rootDir = Path::new(".");
+    // let caFilePath = rootDir.join("rootCA.pem");
+    let private_key_outfile = rootDir.join("privKey.key");
+    let certificate_pem_outfile = rootDir.join("thingCert.crt");
 
     let keyResponse = client
         .create_keys_and_certificate()

@@ -120,24 +120,32 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let args = Args::parse();
-    let region_provider = RegionProviderChain::first_try(args.aws_region.map(Region::new))
-        .or_default_provider()
-        .or_else(Region::new("us_west_2"));
+    let Args {
+        aws_region,
+        root,
+        init_config,
+        provision,
+        name,
+        thing_group_name,
+        thing_policy_name,
+        tes_role_name,
+        tes_role_alias_name,
+        setup_system_service,
+        component_default_user,
+        deploy_dev_tools,
+        start,
+        trusted_plugin,
+    } = Args::parse();
 
     tracing_subscriber::fmt::init();
 
-    easysetup::performSetup(&args.name, args.provision);
+    easysetup::performSetup(name, aws_region.unwrap(), provision, thing_policy_name).await;
 
-    let shared_config = aws_config::from_env().region(region_provider).load().await;
-    let client = Client::new(&shared_config);
-
-    tokio::join!(
-        easysetup::createThing(client, &args.name, &args.name),
-        // provisioning::print_flow();
-        // provisioning::init(region_provider).await;
-        easysetup::downloadRootCAToFile(Path::new("rootCA.pem"))
-    );
+    // tokio::join!(
+    //     // easysetup::createThing(client, &name, &name),
+    //     // provisioning::print_flow();
+    //     // provisioning::init(region_provider).await;
+    // );
 
     // let mut mqtt_options = MqttOptions::new(name, endpoint, 443);
     // mqtt_options
