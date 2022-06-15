@@ -81,10 +81,10 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
 
     // TODO: append
 
-    // let body = reqwest::get(ROOT_CA_URL).await?.unwrap().text().await?;
+    let body = reqwest::get(ROOT_CA_URL).await?.text().await?;
 
-    // debug!("body = {:?}", &body);
-    // fs::write(path, body.unwrap()).expect("Unable to write file");
+    debug!("body = {:?}", &body);
+    fs::write(path, body).expect("Unable to write file");
 
     // downloadFileFromURL(ROOT_CA_URL, path);
     // removeDuplicateCertificates(f);
@@ -253,7 +253,7 @@ async fn provision(client: Client, name: String, policy_name: String) {
     //         .resolve(Kernel.DEFAULT_BOOTSTRAP_CONFIG_TLOG_FILE));
 }
 
-fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
+async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
     // rootDir = kernel.getNucleusPaths().rootPath();
     // let rootDir = Path::new("/greengrass/v2");
     let rootDir = Path::new(".");
@@ -261,7 +261,7 @@ fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
     let privKeyFilePath = rootDir.join("privKey.key");
     let certFilePath = rootDir.join("thingCert.crt");
 
-    downloadRootCAToFile(Path::new("rootCA.pem"));
+    downloadRootCAToFile(Path::new("rootCA.pem")).await;
 
     // try (CommitableFile cf = CommitableFile.of(privKeyFilePath, true)) {
     //     cf.write(thing.keyPair.privateKey().getBytes(StandardCharsets.UTF_8));
