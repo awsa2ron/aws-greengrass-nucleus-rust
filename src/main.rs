@@ -1,6 +1,6 @@
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
-use aws_greengrass_nucleus::{config, easysetup, provisioning, status};
+use aws_greengrass_nucleus::{config, easysetup, provisioning, status, util};
 use aws_sdk_iot::{Client, PKG_VERSION};
 use aws_types::region::Region;
 use clap::Parser;
@@ -152,12 +152,6 @@ async fn main() -> Result<(), Error> {
 
     status::uploadFleetStatusServiceData();
 
-    // tokio::join!(
-    //     // easysetup::createThing(client, &name, &name),
-    //     // provisioning::print_flow();
-    //     // provisioning::init(region_provider).await;
-    // );
-
     let rootDir = Path::new(".");
     let caFilePath = rootDir.join("rootCA.pem");
     let privKeyFilePath = rootDir.join("privKey.key");
@@ -186,37 +180,16 @@ async fn main() -> Result<(), Error> {
     //     let event = eventloop.poll().await;
     //     println!("{:?}", event.unwrap());
     // }
-    task::spawn(async move {
-        for i in 0..10 {
-            client
-                .publish("hello/world", QoS::AtLeastOnce, false, vec![i; i as usize])
-                .await
-                .unwrap();
-            time::sleep(Duration::from_millis(100)).await;
-        }
-    });
+
+    tokio::join!(
+        util::publish(client) // easysetup::createThing(client, &name, &name),
+                              // provisioning::print_flow();
+                              // provisioning::init(region_provider).await;
+    );
 
     while let Ok(notification) = eventloop.poll().await {
         println!("Received = {:?}", notification);
     }
 
     Ok(())
-}
-
-async fn requests(client: AsyncClient) {
-    client
-        .subscribe("hello/world", QoS::AtMostOnce)
-        .await
-        .unwrap();
-
-    for i in 1..=10 {
-        client
-            .publish("hello/world", QoS::ExactlyOnce, false, vec![1; i])
-            .await
-            .unwrap();
-
-        time::sleep(Duration::from_secs(1)).await;
-    }
-
-    time::sleep(Duration::from_secs(120)).await;
 }
