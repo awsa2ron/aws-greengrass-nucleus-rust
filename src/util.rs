@@ -1,6 +1,5 @@
 use anyhow::{Error, Result};
 use rumqttc::{self, AsyncClient, Key, MqttOptions, QoS, Transport};
-use std::time::Duration;
 use tokio::{task, time};
 
 /**
@@ -10,13 +9,8 @@ use tokio::{task, time};
  * @param variablePayloads  The variable objects in the payload to chunk
  */
 // pub async publish(Chunkable<T> chunkablePayload, List<T> variablePayloads) {
-pub async fn publish(client: AsyncClient) -> Result<(), Error> {
-    // client
-    //     .publish("hello/world", QoS::ExactlyOnce, false, vec![1; 10])
-    //     .await
-    //     .unwrap();
-
-    requests(client, "hello/world",).await?;
+pub async fn publish(client: AsyncClient, topic: &'static str) -> Result<(), Error> {
+    // requests(client, topic).await?;
     // int start = 0;
     // int payloadVariableInformationSize = SERIALIZER.writeValueAsBytes(variablePayloads).length;
     // int payloadCommonInformationSize = SERIALIZER.writeValueAsBytes(chunkablePayload).length;
@@ -42,22 +36,5 @@ pub async fn publish(client: AsyncClient) -> Result<(), Error> {
     // }
     // logger.atError().cause(e).kv("topic", updateTopic).log("Unable to publish data via topic.");
 
-    Ok(())
-}
-
-async fn requests(client: AsyncClient, topic:&'static str) -> Result<(), Error>{
-    client
-        .subscribe(topic, QoS::AtMostOnce)
-        .await
-        .unwrap();
-
-    task::spawn(async move {
-        client
-            .publish(topic, QoS::AtLeastOnce, false, vec![1; 10 as usize])
-            .await
-            .unwrap();
-        time::sleep(Duration::from_millis(100)).await;
-    });
-    time::sleep(Duration::from_secs(1)).await;
     Ok(())
 }

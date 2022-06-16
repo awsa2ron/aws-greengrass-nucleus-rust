@@ -115,7 +115,7 @@ pub struct FleetStatusService {
 
 pub fn uploadFleetStatusServiceData(// overAllStatus: OverallStatus,
     // deploymentInformation: DeploymentInformation,
-) {
+) -> String {
     // if (!isConnected.get()) {
     // if true {
     //     info!("Not updating fleet status data since MQTT connection is interrupted.");
@@ -127,17 +127,20 @@ pub fn uploadFleetStatusServiceData(// overAllStatus: OverallStatus,
     // synchronized (greengrassServiceSet)
 
     let fleetStatusDetails = FleetStatusDetails::new();
+    let serde_string = serde_json::to_string(&fleetStatusDetails).unwrap();
     info!(
         event = "fss-status-update-published",
-        "fleetStatusDetails {:?}",
-        serde_json::to_string(&fleetStatusDetails).unwrap()
+        "fleetStatusDetails {:?}", serde_string
     );
     // info!("fss-status-update-published").log("fleetStatusDetails {} components {}");
     // fleetStatusDetails, components);
 
+    // util::publish(client, "hello/world") // easysetup::createThing(client, &name, &name),
     // publisher.publish(fleetStatusDetails, components);
     info!(
         event = "fss-status-update-published",
         "Status update published to FSS"
     );
+
+    serde_string
 }
