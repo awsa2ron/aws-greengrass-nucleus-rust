@@ -183,7 +183,13 @@ async fn main() -> Result<(), Error> {
 
     tokio::join!(
         // util::publish(client, "hello/world"), // easysetup::createThing(client, &name, &name),
-        mqtt::publish(client, payload.into(), "hello/world", QoS::AtLeastOnce, true)
+        mqtt::publish(
+            client,
+            payload.into(),
+            "hello/world",
+            QoS::AtLeastOnce,
+            true
+        )
     );
 
     while let Ok(notification) = eventloop.poll().await {
