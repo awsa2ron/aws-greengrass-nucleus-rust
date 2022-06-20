@@ -293,6 +293,15 @@ async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
     // kernel.getContext().waitForPublishQueueToClear();
     // info!("Created device configuration");
 }
+
+/**
+ * Create a thing with provided configuration.
+ *
+ * @param client     iotClient to use
+ * @param policyName policyName
+ * @param thingName  thingName
+ * @return created thing info
+ */
 async fn createThing(
     client: Client,
     thingName: &str,
