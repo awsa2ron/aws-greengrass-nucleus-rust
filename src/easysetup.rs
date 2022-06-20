@@ -1,3 +1,8 @@
+//! The setup script is intended to give a brand new user of Greengrass to get started with Greengrass device quickly.
+//! As part of that experience the user can get a fat bin for the Greengrass Nucleus, the script can launch the Nucleus
+//! with the customer's provided config if desired, optionally provision the test device as an AWS IoT Thing, create and
+//! attach policies and certificates to it, create TES role and role alias or uses existing ones and attaches
+//! them to the IoT thing certificate.
 use super::provisioning;
 // use anyhow::Result;
 use anyhow::{Error, Result};
