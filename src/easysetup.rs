@@ -4,7 +4,6 @@
 //! attach policies and certificates to it, create TES role and role alias or uses existing ones and attaches
 //! them to the IoT thing certificate.
 use super::provisioning;
-// use anyhow::Result;
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_iot::Client;
@@ -20,8 +19,8 @@ pub struct ThingInfo {
     certificateId: String,
     certificatePem: String,
     // keyPair: String,
-    // dataEndpoint: String,
-    // credEndpoint: String,
+    dataEndpoint: String,
+    credEndpoint: String,
 }
 
 const GG_TOKEN_EXCHANGE_ROLE_ACCESS_POLICY_SUFFIX: &str = "Access";
@@ -97,50 +96,6 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
     // info!("Failed to download Root CA.");
     Ok(())
 }
-
-fn downloadFileFromURL(url: &str, path: &Path) {
-    // String certificates = new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
-    // Set<String> uniqueCertificates =
-    //         Arrays.stream(certificates.split(EncryptionUtils.CERTIFICATE_PEM_HEADER))
-    //                 .map(s -> s.trim())
-    //                 .collect(Collectors.toSet());
-
-    // try (BufferedWriter bw = Files.newBufferedWriter(f.toPath(), StandardCharsets.UTF_8)) {
-    //     for (String certificate : uniqueCertificates) {
-    //         if (certificate.length() > 0) {
-    //             bw.write(EncryptionUtils.CERTIFICATE_PEM_HEADER);
-    //             bw.write("");
-    //             bw.write(certificate);
-    //             bw.write("");
-    //         }
-    //     }
-    // }
-    info!("Failed to remove duplicate certificates - %s%n");
-}
-// fn removeDuplicateCertificates() {
-//     SdkHttpFullRequest request = SdkHttpFullRequest.builder()
-//                 .uri(URI.create(url))
-//                 .method(SdkHttpMethod.GET)
-//                 .build();
-
-//         HttpExecuteRequest executeRequest = HttpExecuteRequest.builder()
-//                 .request(request)
-//                 .build();
-
-//         try (SdkHttpClient client = getSdkHttpClient()) {
-//             HttpExecuteResponse executeResponse = client.prepareRequest(executeRequest).call();
-
-//             int responseCode = executeResponse.httpResponse().statusCode();
-//             if (responseCode != HttpURLConnection.HTTP_OK) {
-//                 throw new IOException("Received invalid response code: " + responseCode);
-//             }
-
-//             try (InputStream inputStream = executeResponse.responseBody().get();
-//                  OutputStream outputStream = Files.newOutputStream(f.toPath(), StandardOpenOption.CREATE,
-//                          StandardOpenOption.APPEND)) {
-//                 IoUtils.copy(inputStream, outputStream);
-//             }
-//         }}
 
 pub async fn performSetup(
     name: String,
@@ -322,28 +277,18 @@ async fn createThing(
     }
     // Create cert
     info!("Creating keys and certificate...");
-    // let certificate_pem_outfile = &provisioning::SystemConfiguration::global().certificateFilePath;
-    // let public_key_outfile = &provisioning::SystemConfiguration::global().privateKeyPath;
-    // let private_key_outfile = &provisioning::SystemConfiguration::global().privateKeyPath;
-
-    let rootDir = Path::new(".");
-    // let caFilePath = rootDir.join("rootCA.pem");
-    let private_key_outfile = rootDir.join("privKey.key");
-    let certificate_pem_outfile = rootDir.join("thingCert.crt");
-
     let keyResponse = client
         .create_keys_and_certificate()
         .set_as_active(true)
         .send()
         .await?;
-
+    let rootDir = Path::new(".");
     fs::write(
-        certificate_pem_outfile,
+        rootDir.join("thingCert.crt"),
         &keyResponse.certificate_pem().unwrap_or_default(),
     )?;
-    // fs::write(public_key_outfile, resp.key_pair.unwrap().public_key().unwrap())?;
     fs::write(
-        private_key_outfile,
+        rootDir.join("privKey.key"),
         &keyResponse.key_pair.unwrap().private_key().unwrap(),
     )?;
 
@@ -358,7 +303,7 @@ async fn createThing(
         .await?;
 
     // Create the thing and attach the cert to it
-    info!("Creating IoT Thing ...%n");
+    info!("Creating IoT Thing ...");
     let resp = client.create_thing().thing_name(thingName).send().await?;
     let thingArn = resp.thing_arn();
 
@@ -371,22 +316,84 @@ async fn createThing(
         .send()
         .await?;
 
+
+    let dataEndpoint = client
+        .describe_endpoint()
+        .endpoint_type("iot:Data-ATS")
+        .send()
+        .await?;
+    let credEndpoint = client
+        .describe_endpoint()
+        .endpoint_type("iot:CredentialProvider")
+        .send()
+        .await?;
+
     let thingInfo = ThingInfo {
         thingArn: thingArn.unwrap().to_string(),
         thingName: thingName.to_string(),
-        // certificateArn: keyResponse.certificate_arn().unwrap().to_string(),
         certificateArn: certificateArn.to_string(),
         certificateId: certificateArn.to_string(),
         certificatePem: certificateArn.to_string(),
-        // certificateId: keyResponse.certificate_id().unwrap().to_string(),
-
-        // certificatePem: keyResponse.certificate_pem().unwrap().to_string(),
+        dataEndpoint: dataEndpoint.endpoint_address.unwrap(),
+        credEndpoint: credEndpoint.endpoint_address.unwrap(),
     };
     Ok(thingInfo)
-    // , keyResponse.keyPair())
-    //         client.describeEndpoint(DescribeEndpointRequest.builder().endpointType("iot:Data-ATS").build())
-    //                 .endpointAddress(), client.describeEndpoint(
-    //         DescribeEndpointRequest.builder().endpointType("iot:CredentialProvider").build()).endpointAddress());
-
-    // ThingInfo()
 }
+
+// /**
+//  * Create IoT role for using TES.
+//  *
+//  * @param roleName       rolaName
+//  * @param roleAliasName  roleAlias name
+//  * @param certificateArn certificate arn for the IoT thing
+//  */
+// pub fn setupIoTRoleForTes(roleName: String, roleAliasName: String, certificateArn: String) {
+//     // String roleAliasArn;
+//     // try {
+//         // Get Role Alias arn
+//         DescribeRoleAliasRequest describeRoleAliasRequest =
+//                 DescribeRoleAliasRequest.builder().roleAlias(roleAliasName).build();
+//         roleAliasArn = iotClient.describeRoleAlias(describeRoleAliasRequest).roleAliasDescription().roleAliasArn();
+//     // } catch (ResourceNotFoundException ranfe) {
+//         info!("TES role alias \"%s\" does not exist, creating new alias...%n", roleAliasName);
+
+//         // Get IAM role arn in order to attach an alias to it
+//         String roleArn;
+//         try {
+//             GetRoleRequest getRoleRequest = GetRoleRequest.builder().roleName(roleName).build();
+//             roleArn = iamClient.getRole(getRoleRequest).role().arn();
+//         } catch (NoSuchEntityException | ResourceNotFoundException rnfe) {
+//             info!("TES role \"%s\" does not exist, creating role...%n", roleName);
+//             CreateRoleRequest createRoleRequest = CreateRoleRequest.builder().roleName(roleName).description(
+//                     "Role for Greengrass IoT things to interact with AWS services using token exchange service")
+//                     .assumeRolePolicyDocument("{\n  \"Version\": \"2012-10-17\",\n"
+//                             + "  \"Statement\": [\n    {\n      \"Effect\": \"Allow\",\n"
+//                             + "      \"Principal\": {\n       \"Service\": \"" + tesServiceEndpoints.get(envStage)
+//                             + "\"\n      },\n      \"Action\": \"sts:AssumeRole\"\n    }\n  ]\n}").build();
+//             roleArn = iamClient.createRole(createRoleRequest).role().arn();
+//         }
+
+//         CreateRoleAliasRequest createRoleAliasRequest =
+//                 CreateRoleAliasRequest.builder().roleArn(roleArn).roleAlias(roleAliasName).build();
+//         roleAliasArn = iotClient.createRoleAlias(createRoleAliasRequest).roleAliasArn();
+//     // }
+
+//     // Attach policy role alias to cert
+//     String iotRolePolicyName = IOT_ROLE_POLICY_NAME_PREFIX + roleAliasName;
+//     try {
+//         iotClient.getPolicy(GetPolicyRequest.builder().policyName(iotRolePolicyName).build());
+//     } catch (ResourceNotFoundException e) {
+//         info!("IoT role policy \"%s\" for TES Role alias not exist, creating policy...%n",
+//                 iotRolePolicyName);
+//         CreatePolicyRequest createPolicyRequest = CreatePolicyRequest.builder().policyName(iotRolePolicyName)
+//                 .policyDocument("{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\": {\n"
+//                         + "\t\t\"Effect\": \"Allow\",\n\t\t\"Action\": \"iot:AssumeRoleWithCertificate\",\n"
+//                         + "\t\t\"Resource\": \"" + roleAliasArn + "\"\n\t}\n}").build();
+//         iotClient.createPolicy(createPolicyRequest);
+//     }
+
+//     outStream.println("Attaching TES role policy to IoT thing...");
+//     AttachPolicyRequest attachPolicyRequest =
+//             AttachPolicyRequest.builder().policyName(iotRolePolicyName).target(certificateArn).build();
+//     iotClient.attachPolicy(attachPolicyRequest);
+// }
