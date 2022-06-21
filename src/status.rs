@@ -60,7 +60,7 @@ pub struct FleetStatusDetails {
 
     sequenceNumber: usize,
 
-    // List<ComponentStatusDetails> componentStatusDetails,
+    componentStatusDetails: Vec<ComponentStatusDetails> ,
     deploymentInformation: String,
     // deploymentInformation: DeploymentInformation,
     // pub void setVariablePayload(List<ComponentStatusDetails> variablePayload) {
@@ -78,6 +78,7 @@ impl FleetStatusDetails {
             overallStatus: OverallStatus::HEALTHY,
             sequenceNumber: 5,
             deploymentInformation: "".to_string(),
+            componentStatusDetails: vec![],
         }
     }
 }
@@ -110,6 +111,7 @@ pub struct DeploymentInformation {
 /**
  * The states in the lifecycle of a service.
  */
+#[derive(Serialize, Deserialize, Debug)]
 pub enum State {
     /**
      * Object does not have a state (not a Lifecycle).
@@ -158,6 +160,7 @@ pub enum State {
      */
     FINISHED,
 }
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ComponentStatusDetails {
     componentName: String,
 
