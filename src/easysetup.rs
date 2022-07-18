@@ -6,7 +6,7 @@
 use super::provisioning;
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_iot::Client;
+use aws_sdk_iot::{Client, model::KeyPair};
 use aws_types::region::Region;
 use std::fs;
 use std::path::Path;
@@ -18,7 +18,7 @@ pub struct ThingInfo {
     certificateArn: String,
     certificateId: String,
     certificatePem: String,
-    // keyPair: String,
+    keyPair: KeyPair,
     dataEndpoint: String,
     credEndpoint: String,
 }
@@ -289,7 +289,7 @@ async fn createThing(
     )?;
     fs::write(
         rootDir.join("privKey.key"),
-        &keyResponse.key_pair.unwrap().private_key().unwrap(),
+        &keyResponse.key_pair.as_ref().unwrap().private_key().unwrap(),
     )?;
 
     let certificateArn = &keyResponse.certificate_arn.unwrap();
@@ -334,6 +334,7 @@ async fn createThing(
         certificateArn: certificateArn.to_string(),
         certificateId: certificateArn.to_string(),
         certificatePem: certificateArn.to_string(),
+        keyPair: keyResponse.key_pair.unwrap(),
         dataEndpoint: dataEndpoint.endpoint_address.unwrap(),
         credEndpoint: credEndpoint.endpoint_address.unwrap(),
     };

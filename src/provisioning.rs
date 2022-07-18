@@ -1,5 +1,3 @@
-pub mod greengrassv2;
-
 use std::path::{Path, PathBuf};
 
 use anyhow::Ok;

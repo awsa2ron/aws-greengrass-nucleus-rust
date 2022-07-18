@@ -46,6 +46,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::{debug, event, info, span, Level};
+use super::dependency;
+
 // implements Chunkable<ComponentStatusDetails>
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FleetStatusDetails {
@@ -60,9 +62,9 @@ pub struct FleetStatusDetails {
 
     sequenceNumber: usize,
 
-    // List<ComponentStatusDetails> componentStatusDetails,
+    componentStatusDetails: Vec<ComponentStatusDetails> ,
+
     deploymentInformation: String,
-    // deploymentInformation: DeploymentInformation,
     // pub void setVariablePayload(List<ComponentStatusDetails> variablePayload) {
     //     this.setComponentStatusDetails(variablePayload),
     // }
@@ -78,6 +80,7 @@ impl FleetStatusDetails {
             overallStatus: OverallStatus::HEALTHY,
             sequenceNumber: 5,
             deploymentInformation: "".to_string(),
+            componentStatusDetails: vec![],
         }
     }
 }
@@ -107,57 +110,8 @@ pub struct DeploymentInformation {
     fleetConfigurationArnForStatus: String,
 }
 
-/**
- * The states in the lifecycle of a service.
- */
-pub enum State {
-    /**
-     * Object does not have a state (not a Lifecycle).
-     */
-    STATELESS,
 
-    /**
-     * Freshly created, probably being injected.
-     */
-    NEW,
-
-    /**
-     * Associated artifacts are installed.
-     */
-    INSTALLED,
-
-    /**
-     * The service has started, but hasn't report running yet.
-     */
-    STARTING,
-
-    /**
-     * Up and running, operating normally. This is the only state that should
-     * ever take a significant amount of time to run.
-     */
-    RUNNING,
-
-    /**
-     * Service is in the process of shutting down.
-     */
-    STOPPING,
-
-    /**
-     * Not running. It may be possible for the enclosing framework to restart
-     * it.
-     */
-    ERRORED,
-
-    /**
-     * Shut down, cannot be restarted. Generally the result of an unresolvable error.
-     */
-    BROKEN,
-    /**
-     * The service has done it's job and has no more to do. May be restarted
-     * (for example, a monitoring task that will be restarted by a timer)
-     */
-    FINISHED,
-}
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ComponentStatusDetails {
     componentName: String,
 
@@ -170,7 +124,7 @@ pub struct ComponentStatusDetails {
     // We need to add this since during serialization, the 'is' is removed.
     isRoot: bool,
 
-    state: State,
+    state: dependency::State,
 }
 
 pub const FLEET_STATUS_SERVICE_TOPICS: &str = "FleetStatusService";
@@ -219,8 +173,8 @@ pub fn uploadFleetStatusServiceData(// overAllStatus: OverallStatus,
     //     info!("Not updating fleet status data since MQTT connection is interrupted.");
     //     return;
     // }
-    let mut components = vec![1, 2, 3];
-    let sequenceNumber: usize = 0;
+    let mut components:ComponentStatusDetails;
+    let sequenceNumber: usize;
 
     // synchronized (greengrassServiceSet)
 
