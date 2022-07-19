@@ -46,7 +46,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::{debug, event, info, span, Level};
-use super::dependency;
+use crate::dependency;
 
 // implements Chunkable<ComponentStatusDetails>
 #[derive(Serialize, Deserialize, Debug)]

@@ -1,6 +1,6 @@
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
-use aws_greengrass_nucleus::{config, easysetup, mqtt, provisioning, status, util};
+use aws_greengrass_nucleus::{config, easysetup, mqtt, provisioning, util};
 use aws_sdk_iot::{Client, PKG_VERSION};
 use aws_types::region::Region;
 use clap::Parser;
@@ -150,7 +150,8 @@ async fn main() -> Result<(), Error> {
     let endpoint = config::Config::global().endpoint.iot_ats.to_string();
     info!("Endpoint: {}", endpoint);
 
-    let payload = status::uploadFleetStatusServiceData();
+    let payload = String::new();
+    // let payload = status::uploadFleetStatusServiceData();
 
     let rootDir = Path::new(".");
     let caFilePath = rootDir.join("rootCA.pem");
