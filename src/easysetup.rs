@@ -148,7 +148,7 @@ pub async fn performSetup(
 
         // this.deviceProvisioningHelper = new DeviceProvisioningHelper(awsRegion, environmentStage, this.outStream);
         // provision(kernel);
-        provision(client, name, thing_policy_name.unwrap()).await;
+        provision(client, name, thing_policy_name.unwrap_or("test".into())).await;
     }
 
     // // Attempt this only after config file and Nucleus args have been parsed
