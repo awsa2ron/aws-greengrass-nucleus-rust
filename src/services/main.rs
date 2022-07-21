@@ -1,4 +1,4 @@
-use crate::services::{Service, ServiceStatus, SERVICES};
+use crate::services::{Service, SERVICES};
 
 const VERSION: &str = "";
 const NAME: &str = "main";
@@ -6,6 +6,6 @@ pub struct Main {}
 
 impl Service for Main {
     fn enable() {
-        SERVICES.insert(NAME.to_string(), Main::new(NAME, VERSION));
+        SERVICES.insert(NAME.to_string(), Self::new(NAME, VERSION));
     }
 }
