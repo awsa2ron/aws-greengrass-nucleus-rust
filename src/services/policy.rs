@@ -9,14 +9,4 @@ impl Service for Policy {
         SERVICES.insert("UpdateSystemPolicyService".to_string(), 2);
         true
     }
-    fn status() -> ServiceStatus {
-        ServiceStatus {
-            componentName: "",
-            version: "",
-            fleetConfigArns: vec![],
-            statusDetails: "",
-            isRoot: false,
-            state: State::FINISHED,
-        }
-    }
 }

@@ -9,14 +9,4 @@ impl Service for Deployments {
         SERVICES.insert("DeploymentService".to_string(), 3);
         true
     }
-    fn status() -> ServiceStatus {
-        ServiceStatus {
-            componentName: "",
-            version: "",
-            fleetConfigArns: vec![],
-            statusDetails: "",
-            isRoot: false,
-            state: State::FINISHED,
-        }
-    }
 }

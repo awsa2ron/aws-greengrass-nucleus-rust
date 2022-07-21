@@ -5,21 +5,34 @@ pub mod policy;
 pub mod status;
 pub mod telemetry;
 
+use crate::dependency::State;
+
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 
 pub static SERVICES: Lazy<DashMap<String, i32>> = Lazy::new(|| DashMap::new());
 
 pub trait Service {
+    fn new() -> ServiceStatus {
+        ServiceStatus {
+            componentName: "",
+            version: "",
+            fleetConfigArns: vec![],
+            statusDetails: "",
+            isRoot: false,
+            state: State::FINISHED,
+        }
+    }
     fn enable() -> bool;
     // fn disable() -> bool;
     // fn start() -> bool;
     // fn restart() -> bool;
     // fn stop() -> bool;
-    fn status() -> ServiceStatus;
+    fn status() -> State {
+        State::FINISHED
+    }
 }
 
-use crate::dependency::State;
 pub struct ServiceStatus {
     componentName: &'static str,
     version: &'static str,
@@ -28,19 +41,6 @@ pub struct ServiceStatus {
     // We need to add this since during serialization, the 'is' is removed.
     isRoot: bool,
     state: State,
-}
-
-use deployment::Deployments;
-use kernel::Kernel;
-use policy::Policy;
-use telemetry::Telemetry;
-
-fn services_init() {
-    Kernel::enable();
-    Telemetry::enable();
-    Deployments::enable();
-    Policy::enable();
-    println!("{:?}", *SERVICES.get("Kernel").unwrap());
 }
 
 #[cfg(test)]
@@ -56,20 +56,11 @@ mod tests {
     use super::kernel::Kernel;
     use super::policy::Policy;
     use super::telemetry::Telemetry;
+    use crate::dependency::State;
 
     #[test]
-    fn services_init_test() {
-        Kernel::enable();
-        Telemetry::enable();
-        Deployments::enable();
-        Policy::enable();
-        // assert_eq!(*SERVICES.get("aws.greengrass.Nucleus").unwrap(), 0);
-        // assert_eq!(*SERVICES.get("UpdateSystemPolicyService").unwrap(), 2);
-        // assert_eq!(*SERVICES.get("DeploymentService").unwrap(), 3);
-        // assert_eq!(*SERVICES.get("TelemetryAgent").unwrap(), 4);
-    }
-    #[test]
-    fn services_status_test() {
-        assert_eq!(Kernel::status().version, "2.5.5");
+    fn services_test() {
+        Kernel::new();
+        assert_eq!(Kernel::status(), State::FINISHED);
     }
 }
