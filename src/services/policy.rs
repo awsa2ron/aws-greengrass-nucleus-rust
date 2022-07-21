@@ -6,6 +6,9 @@ pub struct Policy {}
 
 impl Service for Policy {
     fn enable() {
-        SERVICES.insert("UpdateSystemPolicyService".to_string(), Policy::new(NAME));
+        SERVICES.insert(
+            "UpdateSystemPolicyService".to_string(),
+            Policy::new(NAME, VERSION),
+        );
     }
 }

@@ -6,6 +6,6 @@ pub struct Telemetry {}
 
 impl Service for Telemetry {
     fn enable() {
-        SERVICES.insert("TelemetryAgent".to_string(), Telemetry::new(NAME));
+        SERVICES.insert("TelemetryAgent".to_string(), Telemetry::new(NAME, VERSION));
     }
 }

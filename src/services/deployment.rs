@@ -6,6 +6,9 @@ pub struct Deployments {}
 
 impl Service for Deployments {
     fn enable() {
-        SERVICES.insert("DeploymentService".to_string(), Deployments::new(NAME));
+        SERVICES.insert(
+            "DeploymentService".to_string(),
+            Deployments::new(NAME, VERSION),
+        );
     }
 }

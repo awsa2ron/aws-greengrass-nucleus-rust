@@ -15,10 +15,10 @@ use once_cell::sync::Lazy;
 pub static SERVICES: Lazy<DashMap<String, ServiceStatus>> = Lazy::new(|| DashMap::new());
 
 pub trait Service {
-    fn new(name: &'static str) -> ServiceStatus {
+    fn new(name: &'static str, ver: &'static str) -> ServiceStatus {
         ServiceStatus {
             componentName: name,
-            version: "",
+            version: ver,
             fleetConfigArns: vec![],
             statusDetails: json!(null),
             isRoot: false,
