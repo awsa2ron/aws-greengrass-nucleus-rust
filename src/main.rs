@@ -145,19 +145,21 @@ async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::init();
 
     easysetup::performSetup(
-        thing_name,
+        &thing_name,
         aws_region.unwrap_or("ap-southeast-1".into()),
         provision,
         thing_policy_name,
     )
     .await;
 
+    let payload =
+        aws_greengrass_nucleus::services::status::uploadFleetStatusServiceData(&thing_name);
+
     config::init();
     let endpoint = config::Config::global().endpoint.iot_ats.to_string();
     info!("Endpoint: {}", endpoint);
 
-    let payload = String::new();
-    // let payload = status::uploadFleetStatusServiceData();
+    // let payload = String::new();
 
     let rootDir = Path::new(".");
     let caFilePath = rootDir.join("rootCA.pem");
@@ -188,16 +190,16 @@ async fn main() -> Result<(), Error> {
     //     println!("{:?}", event.unwrap());
     // }
 
-    tokio::join!(
-        // util::publish(client, "hello/world"), // easysetup::createThing(client, &name, &name),
-        mqtt::publish(
-            client,
-            payload.into(),
-            "hello/world",
-            QoS::AtLeastOnce,
-            true
-        )
-    );
+    // tokio::join!(
+    //     // util::publish(client, "hello/world"), // easysetup::createThing(client, &name, &name),
+    //     mqtt::publish(
+    //         client,
+    //         payload.into(),
+    //         "hello/world",
+    //         QoS::AtLeastOnce,
+    //         true
+    //     )
+    // );
 
     while let Ok(notification) = eventloop.poll().await {
         println!("Received = {:?}", notification);

@@ -22,17 +22,17 @@ pub trait Service {
             fleetConfigArns: vec![],
             statusDetails: json!(null),
             isRoot: false,
-            state: State::FINISHED,
+            state: State::RUNNING,
         }
     }
     fn enable();
     // fn disable() -> bool;
-    fn start() {}
+    // fn start() {}
     // fn restart() -> bool;
     // fn stop() -> bool;
-    fn status() -> State {
-        State::FINISHED
-    }
+    // fn status() -> State {
+    //     State::FINISHED
+    // }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -48,21 +48,18 @@ pub struct ServiceStatus {
 
 use deployment::Deployments;
 use kernel::Kernel;
+use main::Main;
 use policy::Policy;
 use status::Status;
 use telemetry::Telemetry;
 
 pub fn start_services() {
     Kernel::enable();
+    Main::enable();
     Policy::enable();
     Deployments::enable();
     Telemetry::enable();
     Status::enable();
-    // for (name, state) in SERVICES.iter() {
-    //     println!("name is {name} and state is {state}");
-    // }
-    // print!("Status is {}", json!(status::FleetStatusDetails::new()));
-    Status::start();
 }
 #[cfg(test)]
 mod tests {

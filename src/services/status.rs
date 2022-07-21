@@ -58,34 +58,18 @@ impl Service for Status {
     fn enable() {
         SERVICES.insert("FleetStatusService".to_string(), Status::new(NAME, VERSION));
     }
-
-    fn start() {
-        println!("Status start...");
-        let mut payload = FleetStatusDetails::new();
-        // payload.components.push(SERVICES.get("FleetStatusService").unwrap().value().clone());
-        SERVICES
-            .iter()
-            .for_each(|r| payload.components.push(r.value().clone()));
-
-        println!("{}", json!(payload));
-    }
 }
 
 // implements Chunkable<ComponentStatusDetails>
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FleetStatusDetails {
     ggcVersion: &'static str,
-
     platform: &'static str,
-
     architecture: &'static str,
-
     thing: String,
     overallStatus: OverallStatus,
-
     sequenceNumber: usize,
-
-    components: Vec<crate::services::ServiceStatus>,
+    pub components: Vec<crate::services::ServiceStatus>,
     // components: Vec<ComponentStatusDetails>,
     deploymentInformation: String,
     // pub void setVariablePayload(List<ComponentStatusDetails> variablePayload) {
@@ -94,12 +78,12 @@ pub struct FleetStatusDetails {
 }
 
 impl FleetStatusDetails {
-    pub fn new() -> Self {
+    pub fn new(name: &str) -> Self {
         FleetStatusDetails {
             ggcVersion: "2.5.5",
             platform: "linux",
             architecture: "x86_64",
-            thing: "".to_string(),
+            thing: name.to_string(),
             overallStatus: OverallStatus::HEALTHY,
             sequenceNumber: 5,
             deploymentInformation: "".to_string(),
@@ -187,9 +171,10 @@ pub struct FleetStatusService {
     // ScheduledFuture<?> periodicUpdateFuture,
 }
 
-pub fn uploadFleetStatusServiceData(// overAllStatus: OverallStatus,
-    // deploymentInformation: DeploymentInformation,
-) -> String {
+pub fn uploadFleetStatusServiceData(
+    name: &str, // overAllStatus: OverallStatus,
+                // deploymentInformation: DeploymentInformation,
+) {
     // if (!isConnected.get()) {
     // if true {
     //     info!("Not updating fleet status data since MQTT connection is interrupted.");
@@ -200,12 +185,16 @@ pub fn uploadFleetStatusServiceData(// overAllStatus: OverallStatus,
 
     // synchronized (greengrassServiceSet)
 
-    let fleetStatusDetails = FleetStatusDetails::new();
-    let serde_string = serde_json::to_string(&fleetStatusDetails).unwrap();
-    info!(
-        event = "fss-status-update-published",
-        "fleetStatusDetails {:?}", serde_string
-    );
+    let mut payload = FleetStatusDetails::new(name);
+    SERVICES
+        .iter()
+        .for_each(|r| payload.components.push(r.value().clone()));
+    // let fleetStatusDetails = FleetStatusDetails::new();
+    // let serde_string = serde_json::to_string(&fleetStatusDetails).unwrap();
+    // info!(
+    //     event = "fss-status-update-published",
+    //     "fleetStatusDetails {:?}", serde_string
+    // );
     // info!("fss-status-update-published").log("fleetStatusDetails {} components {}");
     // fleetStatusDetails, components);
 
@@ -216,5 +205,7 @@ pub fn uploadFleetStatusServiceData(// overAllStatus: OverallStatus,
         "Status update published to FSS"
     );
 
-    serde_string
+    println!("{}", json!(payload));
+
+    // serde_string
 }

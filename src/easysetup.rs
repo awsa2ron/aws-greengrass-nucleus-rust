@@ -100,7 +100,7 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
 }
 
 pub async fn performSetup(
-    name: String,
+    name: &str,
     region: String,
     needProvisioning: bool,
     thing_policy_name: Option<String>,
@@ -180,7 +180,7 @@ pub async fn performSetup(
     info!("Launched Nucleus successfully.");
 }
 
-async fn provision(client: Client, name: String, policy_name: String) {
+async fn provision(client: Client, name: &str, policy_name: String) {
     info!(
         "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
         name
