@@ -1,6 +1,6 @@
-pub mod configuration;
 pub mod deployment;
 pub mod kernel;
+pub mod main;
 pub mod policy;
 pub mod status;
 pub mod telemetry;
