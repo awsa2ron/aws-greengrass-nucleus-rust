@@ -5,6 +5,8 @@ pub mod policy;
 pub mod status;
 pub mod telemetry;
 
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use crate::dependency::State;
 
 use dashmap::DashMap;
@@ -33,6 +35,7 @@ pub trait Service {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ServiceStatus {
     componentName: &'static str,
     version: &'static str,
@@ -56,7 +59,7 @@ pub fn start_services() {
     // for (name, state) in SERVICES.iter() {
     //     println!("name is {name} and state is {state}");
     // }
-    SERVICES.iter().for_each(|r| println!("key: {}", r.key()));
+    SERVICES.iter().for_each(|r| println!("key: {}, value: {}", r.key(), json!(r.value())));
 }
 #[cfg(test)]
 mod tests {
