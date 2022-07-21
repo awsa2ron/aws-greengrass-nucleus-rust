@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 /**
  * The states in the lifecycle of a service.
  */
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum State {
     /**
      * Object does not have a state (not a Lifecycle).
