@@ -191,8 +191,9 @@ async fn main() -> Result<(), Error> {
     //     let event = eventloop.poll().await;
     //     println!("{:?}", event.unwrap());
     // }
-    // let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
+    // let topic = format!("greengrassv2/health/json");
     let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
+    info!("Send {payload} to {topic}");
     tokio::join!(
         // util::publish(client, "hello/world"), // easysetup::createThing(client, &name, &name),
         mqtt::publish(client, payload.into(), topic, QoS::AtLeastOnce, true)

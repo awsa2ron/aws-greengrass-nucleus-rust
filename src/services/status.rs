@@ -67,11 +67,11 @@ pub struct FleetStatusDetails {
     platform: &'static str,
     architecture: &'static str,
     thing: String,
-    overallStatus: OverallStatus,
+    overallDeviceStatus: OverallStatus,
     sequenceNumber: usize,
     pub components: Vec<crate::services::ServiceStatus>,
     // components: Vec<ComponentStatusDetails>,
-    deploymentInformation: String,
+    // deploymentInformation: String,
     // pub void setVariablePayload(List<ComponentStatusDetails> variablePayload) {
     //     this.setComponentStatusDetails(variablePayload),
     // }
@@ -84,9 +84,9 @@ impl FleetStatusDetails {
             platform: "linux",
             architecture: "x86_64",
             thing: name.to_string(),
-            overallStatus: OverallStatus::HEALTHY,
-            sequenceNumber: 5,
-            deploymentInformation: "".to_string(),
+            overallDeviceStatus: OverallStatus::HEALTHY,
+            sequenceNumber: 9,
+            // deploymentInformation: "".to_string(),
             components: vec![],
         }
     }
@@ -130,7 +130,7 @@ pub struct ComponentStatusDetails {
     // We need to add this since during serialization, the 'is' is removed.
     isRoot: bool,
 
-    state: dependency::State,
+    status: dependency::State,
 }
 
 pub const FLEET_STATUS_SERVICE_TOPICS: &str = "FleetStatusService";

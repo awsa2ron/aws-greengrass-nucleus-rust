@@ -22,7 +22,7 @@ pub trait Service {
             fleetConfigArns: vec![],
             statusDetails: json!(null),
             isRoot: false,
-            state: State::RUNNING,
+            status: State::FINISHED,
         }
     }
     fn enable();
@@ -30,9 +30,7 @@ pub trait Service {
     // fn start() {}
     // fn restart() -> bool;
     // fn stop() -> bool;
-    // fn status() -> State {
-    //     State::FINISHED
-    // }
+    // fn status() -> State {}
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -43,7 +41,7 @@ pub struct ServiceStatus {
     statusDetails: Value,
     // We need to add this since during serialization, the 'is' is removed.
     isRoot: bool,
-    state: State,
+    status: State,
 }
 
 use deployment::Deployments;
@@ -94,7 +92,7 @@ mod tests {
             false
         );
         assert_eq!(
-            SERVICES.get("aws.greengrass.Nucleus").unwrap().state,
+            SERVICES.get("aws.greengrass.Nucleus").unwrap().status,
             State::FINISHED
         );
     }
