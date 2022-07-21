@@ -3,6 +3,8 @@
 //! with the customer's provided config if desired, optionally provision the test device as an AWS IoT Thing, create and
 //! attach policies and certificates to it, create TES role and role alias or uses existing ones and attaches
 //! them to the IoT thing certificate.
+use crate::services;
+
 use super::provisioning;
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
@@ -174,6 +176,7 @@ pub async fn performSetup(
     // }
     info!("Launching Nucleus...");
     // kernel.launch();
+    services::start_services();
     info!("Launched Nucleus successfully.");
 }
 

@@ -25,7 +25,7 @@ pub trait Service {
     }
     fn enable();
     // fn disable() -> bool;
-    // fn start() -> bool;
+    fn start() {}
     // fn restart() -> bool;
     // fn stop() -> bool;
     fn status() -> State {
@@ -43,6 +43,21 @@ pub struct ServiceStatus {
     state: State,
 }
 
+use deployment::Deployments;
+use kernel::Kernel;
+use policy::Policy;
+use telemetry::Telemetry;
+
+pub fn start_services() {
+    Kernel::enable();
+    Policy::enable();
+    Deployments::enable();
+    Telemetry::enable();
+    // for (name, state) in SERVICES.iter() {
+    //     println!("name is {name} and state is {state}");
+    // }
+    SERVICES.iter().for_each(|r| println!("key: {}", r.key()));
+}
 #[cfg(test)]
 mod tests {
     #[test]

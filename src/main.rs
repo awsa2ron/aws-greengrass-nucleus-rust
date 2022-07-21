@@ -45,7 +45,7 @@ struct Args {
     // this name doesn't exist in your AWS account, the AWS IoT Greengrass Core software creates it.
     //Defaults to GreengrassV2IotThing_ plus a random UUID.
     #[clap(short, long)]
-    name: String,
+    thing_name: String,
 
     // (Optional) The name of the AWS IoT thing group where you add this core
     // device's AWS IoT thing.
@@ -130,7 +130,7 @@ async fn main() -> Result<(), Error> {
         root,
         init_config,
         provision,
-        name,
+        thing_name,
         thing_group_name,
         thing_policy_name,
         tes_role_name,
@@ -145,7 +145,7 @@ async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::init();
 
     easysetup::performSetup(
-        name,
+        thing_name,
         aws_region.unwrap_or("ap-southeast-1".into()),
         provision,
         thing_policy_name,
