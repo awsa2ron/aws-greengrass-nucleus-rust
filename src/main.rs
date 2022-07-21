@@ -144,7 +144,13 @@ async fn main() -> Result<(), Error> {
 
     tracing_subscriber::fmt::init();
 
-    easysetup::performSetup(name, aws_region.unwrap_or("ap-southeast-1".into()), provision, thing_policy_name).await;
+    easysetup::performSetup(
+        name,
+        aws_region.unwrap_or("ap-southeast-1".into()),
+        provision,
+        thing_policy_name,
+    )
+    .await;
 
     config::init();
     let endpoint = config::Config::global().endpoint.iot_ats.to_string();

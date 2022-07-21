@@ -31,22 +31,22 @@
 //! 2. Periodic/Cadence Based
 //! - Default interval is 1 day.
 //!
-//! # Sample Configuration
-//! > Note: this configuration cannot be updated via deployments.
-//! ```
-//! services:
-//!   main:
-//!     dependencies:
-//!       - FleetStatusService
-//!   FleetStatusService:
-//!     configuration:
-//!       periodicUpdateIntervalSec: 86400
-//! ```
+// # Sample Configuration
+// > Note: this configuration cannot be updated via deployments.
+// ```
+// services:
+//   main:
+//     dependencies:
+//       FleetStatusService
+//   FleetStatusService:
+//     configuration:
+//       periodicUpdateIntervalSec: 86400
+// ```
 
+use crate::dependency;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::{debug, event, info, span, Level};
-use crate::dependency;
 
 // implements Chunkable<ComponentStatusDetails>
 #[derive(Serialize, Deserialize, Debug)]
@@ -62,7 +62,7 @@ pub struct FleetStatusDetails {
 
     sequenceNumber: usize,
 
-    componentStatusDetails: Vec<ComponentStatusDetails> ,
+    componentStatusDetails: Vec<ComponentStatusDetails>,
 
     deploymentInformation: String,
     // pub void setVariablePayload(List<ComponentStatusDetails> variablePayload) {
@@ -109,7 +109,6 @@ pub struct DeploymentInformation {
     statusDetails: StatusDetails,
     fleetConfigurationArnForStatus: String,
 }
-
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ComponentStatusDetails {
@@ -173,7 +172,7 @@ pub fn uploadFleetStatusServiceData(// overAllStatus: OverallStatus,
     //     info!("Not updating fleet status data since MQTT connection is interrupted.");
     //     return;
     // }
-    let mut components:ComponentStatusDetails;
+    let mut components: ComponentStatusDetails;
     let sequenceNumber: usize;
 
     // synchronized (greengrassServiceSet)

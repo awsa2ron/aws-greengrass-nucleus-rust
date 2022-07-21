@@ -6,7 +6,7 @@
 use super::provisioning;
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_iot::{Client, model::KeyPair};
+use aws_sdk_iot::{model::KeyPair, Client};
 use aws_types::region::Region;
 use std::fs;
 use std::path::Path;
@@ -289,7 +289,12 @@ async fn createThing(
     )?;
     fs::write(
         rootDir.join("privKey.key"),
-        &keyResponse.key_pair.as_ref().unwrap().private_key().unwrap(),
+        &keyResponse
+            .key_pair
+            .as_ref()
+            .unwrap()
+            .private_key()
+            .unwrap(),
     )?;
 
     let certificateArn = &keyResponse.certificate_arn.unwrap();
@@ -315,7 +320,6 @@ async fn createThing(
         .principal(certificateArn)
         .send()
         .await?;
-
 
     let dataEndpoint = client
         .describe_endpoint()
