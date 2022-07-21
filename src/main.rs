@@ -6,6 +6,7 @@ use aws_types::region::Region;
 use clap::Parser;
 use rumqttc::{self, AsyncClient, Key, MqttOptions, QoS, Transport};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fs;
 use std::path::Path;
 use std::time::Duration;
@@ -45,7 +46,7 @@ struct Args {
     // this name doesn't exist in your AWS account, the AWS IoT Greengrass Core software creates it.
     //Defaults to GreengrassV2IotThing_ plus a random UUID.
     #[clap(short, long)]
-    name: String,
+    thing_name: String,
 
     // (Optional) The name of the AWS IoT thing group where you add this core
     // device's AWS IoT thing.
@@ -130,7 +131,7 @@ async fn main() -> Result<(), Error> {
         root,
         init_config,
         provision,
-        name,
+        thing_name,
         thing_group_name,
         thing_policy_name,
         tes_role_name,
@@ -144,14 +145,23 @@ async fn main() -> Result<(), Error> {
 
     tracing_subscriber::fmt::init();
 
-    easysetup::performSetup(name, aws_region.unwrap_or("ap-southeast-1".into()), provision, thing_policy_name).await;
+    easysetup::performSetup(
+        &thing_name,
+        aws_region.unwrap_or("ap-southeast-1".into()),
+        provision,
+        thing_policy_name,
+    )
+    .await;
+
+    let payload =
+        json!(aws_greengrass_nucleus::services::status::uploadFleetStatusServiceData(&thing_name))
+            .to_string();
 
     config::init();
     let endpoint = config::Config::global().endpoint.iot_ats.to_string();
     info!("Endpoint: {}", endpoint);
 
-    let payload = String::new();
-    // let payload = status::uploadFleetStatusServiceData();
+    // let payload = String::new();
 
     let rootDir = Path::new(".");
     let caFilePath = rootDir.join("rootCA.pem");
@@ -159,7 +169,7 @@ async fn main() -> Result<(), Error> {
     let certFilePath = rootDir.join("thingCert.crt");
     info!("{:?}", endpoint);
 
-    let mut mqtt_options = MqttOptions::new("test-1", endpoint, 8883);
+    let mut mqtt_options = MqttOptions::new(&thing_name, endpoint, 8883);
     mqtt_options
         .set_keep_alive(Duration::from_secs(30))
         .set_transport(Transport::tls(
@@ -181,16 +191,12 @@ async fn main() -> Result<(), Error> {
     //     let event = eventloop.poll().await;
     //     println!("{:?}", event.unwrap());
     // }
-
+    // let topic = format!("greengrassv2/health/json");
+    let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
+    info!("Send {payload} to {topic}");
     tokio::join!(
         // util::publish(client, "hello/world"), // easysetup::createThing(client, &name, &name),
-        mqtt::publish(
-            client,
-            payload.into(),
-            "hello/world",
-            QoS::AtLeastOnce,
-            true
-        )
+        mqtt::publish(client, payload.into(), topic, QoS::AtLeastOnce, true)
     );
 
     while let Ok(notification) = eventloop.poll().await {

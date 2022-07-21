@@ -32,10 +32,10 @@ pub struct PublishRequest {
  *
  * @param request publish request
  */
-pub async fn publish(
+pub async fn publish<'a>(
     client: AsyncClient,
     message: Vec<u8>,
-    topic: &'static str,
+    topic: String,
     qos: QoS,
     retain: bool,
 ) {
@@ -55,8 +55,8 @@ pub async fn publish(
     requests(client, message, topic).await;
 }
 
-async fn requests(client: AsyncClient, message: Vec<u8>, topic: &'static str) -> Result<(), Error> {
-    client.subscribe(topic, QoS::AtMostOnce).await.unwrap();
+async fn requests<'a>(client: AsyncClient, message: Vec<u8>, topic: String) -> Result<(), Error> {
+    client.subscribe(&topic, QoS::AtMostOnce).await.unwrap();
 
     task::spawn(async move {
         client

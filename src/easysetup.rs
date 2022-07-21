@@ -3,10 +3,12 @@
 //! with the customer's provided config if desired, optionally provision the test device as an AWS IoT Thing, create and
 //! attach policies and certificates to it, create TES role and role alias or uses existing ones and attaches
 //! them to the IoT thing certificate.
+use crate::services;
+
 use super::provisioning;
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_iot::{Client, model::KeyPair};
+use aws_sdk_iot::{model::KeyPair, Client};
 use aws_types::region::Region;
 use std::fs;
 use std::path::Path;
@@ -98,14 +100,14 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
 }
 
 pub async fn performSetup(
-    name: String,
+    name: &str,
     region: String,
     needProvisioning: bool,
     thing_policy_name: Option<String>,
 ) {
     let region_provider = RegionProviderChain::first_try(Region::new(region))
         .or_default_provider()
-        .or_else(Region::new("us_west_2"));
+        .or_else(Region::new("ap-southeast-1"));
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&shared_config);
 
@@ -148,7 +150,12 @@ pub async fn performSetup(
 
         // this.deviceProvisioningHelper = new DeviceProvisioningHelper(awsRegion, environmentStage, this.outStream);
         // provision(kernel);
-        provision(client, name, thing_policy_name.unwrap()).await;
+        provision(
+            client,
+            name,
+            thing_policy_name.unwrap_or("IoTAdmin".to_string()),
+        )
+        .await;
     }
 
     // // Attempt this only after config file and Nucleus args have been parsed
@@ -174,10 +181,11 @@ pub async fn performSetup(
     // }
     info!("Launching Nucleus...");
     // kernel.launch();
+    services::start_services();
     info!("Launched Nucleus successfully.");
 }
 
-async fn provision(client: Client, name: String, policy_name: String) {
+async fn provision(client: Client, name: &str, policy_name: String) {
     info!(
         "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
         name
@@ -199,7 +207,7 @@ async fn provision(client: Client, name: String, policy_name: String) {
     // deviceProvisioningHelper.createAndAttachRolePolicy(tesRoleName, Region.of(awsRegion));
     info!("Configuring Nucleus with provisioned resource details...");
     // deviceProvisioningHelper.updateKernelConfigWithIotConfiguration(kernel, thingInfo, awsRegion, tesRoleAliasName);
-    updateKernelConfigWithIotConfiguration(thing);
+    updateKernelConfigWithIotConfiguration(thing).await;
     info!("Successfully configured Nucleus with provisioned resource details!");
     // if (deployDevTools) {
     //     deviceProvisioningHelper.createInitialDeploymentIfNeeded(thingInfo, thingGroupName,
@@ -263,7 +271,7 @@ async fn createThing(
     policyName: &str,
 ) -> Result<ThingInfo, Error> {
     // Find or create IoT policy
-    match client.get_policy().policy_name(thingName).send().await {
+    match client.get_policy().policy_name(policyName).send().await {
         Ok(_) => info!("Found IoT policy {}, reusing it", policyName),
         Err(_) => {
             info!("Creating new IoT policy {}", policyName);
@@ -289,7 +297,12 @@ async fn createThing(
     )?;
     fs::write(
         rootDir.join("privKey.key"),
-        &keyResponse.key_pair.as_ref().unwrap().private_key().unwrap(),
+        &keyResponse
+            .key_pair
+            .as_ref()
+            .unwrap()
+            .private_key()
+            .unwrap(),
     )?;
 
     let certificateArn = &keyResponse.certificate_arn.unwrap();
@@ -315,7 +328,6 @@ async fn createThing(
         .principal(certificateArn)
         .send()
         .await?;
-
 
     let dataEndpoint = client
         .describe_endpoint()

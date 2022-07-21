@@ -31,56 +31,63 @@
 //! 2. Periodic/Cadence Based
 //! - Default interval is 1 day.
 //!
-//! # Sample Configuration
-//! > Note: this configuration cannot be updated via deployments.
-//! ```
-//! services:
-//!   main:
-//!     dependencies:
-//!       - FleetStatusService
-//!   FleetStatusService:
-//!     configuration:
-//!       periodicUpdateIntervalSec: 86400
-//! ```
+// # Sample Configuration
+// > Note: this configuration cannot be updated via deployments.
+// ```
+// services:
+//   main:
+//     dependencies:
+//       FleetStatusService
+//   FleetStatusService:
+//     configuration:
+//       periodicUpdateIntervalSec: 86400
+// ```
 
+use crate::dependency;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::{debug, event, info, span, Level};
-use crate::dependency;
+
+use crate::services::{Service, ServiceStatus, SERVICES};
+
+const VERSION: &str = "";
+const NAME: &str = "FleetStatusService";
+pub struct Status {}
+
+impl Service for Status {
+    fn enable() {
+        SERVICES.insert("FleetStatusService".to_string(), Status::new(NAME, VERSION));
+    }
+}
 
 // implements Chunkable<ComponentStatusDetails>
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FleetStatusDetails {
     ggcVersion: &'static str,
-
     platform: &'static str,
-
     architecture: &'static str,
-
     thing: String,
-    overallStatus: OverallStatus,
-
+    overallDeviceStatus: OverallStatus,
     sequenceNumber: usize,
-
-    componentStatusDetails: Vec<ComponentStatusDetails> ,
-
-    deploymentInformation: String,
+    pub components: Vec<crate::services::ServiceStatus>,
+    // components: Vec<ComponentStatusDetails>,
+    // deploymentInformation: String,
     // pub void setVariablePayload(List<ComponentStatusDetails> variablePayload) {
     //     this.setComponentStatusDetails(variablePayload),
     // }
 }
 
 impl FleetStatusDetails {
-    fn new() -> Self {
+    pub fn new(name: &str) -> Self {
         FleetStatusDetails {
             ggcVersion: "2.5.5",
             platform: "linux",
             architecture: "x86_64",
-            thing: "".to_string(),
-            overallStatus: OverallStatus::HEALTHY,
-            sequenceNumber: 5,
-            deploymentInformation: "".to_string(),
-            componentStatusDetails: vec![],
+            thing: name.to_string(),
+            overallDeviceStatus: OverallStatus::HEALTHY,
+            sequenceNumber: 9,
+            // deploymentInformation: "".to_string(),
+            components: vec![],
         }
     }
 }
@@ -110,7 +117,6 @@ pub struct DeploymentInformation {
     fleetConfigurationArnForStatus: String,
 }
 
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ComponentStatusDetails {
     componentName: String,
@@ -124,7 +130,7 @@ pub struct ComponentStatusDetails {
     // We need to add this since during serialization, the 'is' is removed.
     isRoot: bool,
 
-    state: dependency::State,
+    status: dependency::State,
 }
 
 pub const FLEET_STATUS_SERVICE_TOPICS: &str = "FleetStatusService";
@@ -165,25 +171,30 @@ pub struct FleetStatusService {
     // ScheduledFuture<?> periodicUpdateFuture,
 }
 
-pub fn uploadFleetStatusServiceData(// overAllStatus: OverallStatus,
-    // deploymentInformation: DeploymentInformation,
-) -> String {
+pub fn uploadFleetStatusServiceData(
+    name: &str, // overAllStatus: OverallStatus,
+                // deploymentInformation: DeploymentInformation,
+) -> FleetStatusDetails {
     // if (!isConnected.get()) {
     // if true {
     //     info!("Not updating fleet status data since MQTT connection is interrupted.");
     //     return;
     // }
-    let mut components:ComponentStatusDetails;
+    let mut components: ComponentStatusDetails;
     let sequenceNumber: usize;
 
     // synchronized (greengrassServiceSet)
 
-    let fleetStatusDetails = FleetStatusDetails::new();
-    let serde_string = serde_json::to_string(&fleetStatusDetails).unwrap();
-    info!(
-        event = "fss-status-update-published",
-        "fleetStatusDetails {:?}", serde_string
-    );
+    let mut payload = FleetStatusDetails::new(name);
+    SERVICES
+        .iter()
+        .for_each(|r| payload.components.push(r.value().clone()));
+    // let fleetStatusDetails = FleetStatusDetails::new();
+    // let serde_string = serde_json::to_string(&fleetStatusDetails).unwrap();
+    // info!(
+    //     event = "fss-status-update-published",
+    //     "fleetStatusDetails {:?}", serde_string
+    // );
     // info!("fss-status-update-published").log("fleetStatusDetails {} components {}");
     // fleetStatusDetails, components);
 
@@ -194,5 +205,8 @@ pub fn uploadFleetStatusServiceData(// overAllStatus: OverallStatus,
         "Status update published to FSS"
     );
 
-    serde_string
+    // println!("{}", json!(payload));
+    payload
+
+    // serde_string
 }
