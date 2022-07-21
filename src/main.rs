@@ -6,6 +6,7 @@ use aws_types::region::Region;
 use clap::Parser;
 use rumqttc::{self, AsyncClient, Key, MqttOptions, QoS, Transport};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fs;
 use std::path::Path;
 use std::time::Duration;
@@ -153,7 +154,8 @@ async fn main() -> Result<(), Error> {
     .await;
 
     let payload =
-        aws_greengrass_nucleus::services::status::uploadFleetStatusServiceData(&thing_name);
+        json!(aws_greengrass_nucleus::services::status::uploadFleetStatusServiceData(&thing_name))
+            .to_string();
 
     config::init();
     let endpoint = config::Config::global().endpoint.iot_ats.to_string();
@@ -167,7 +169,7 @@ async fn main() -> Result<(), Error> {
     let certFilePath = rootDir.join("thingCert.crt");
     info!("{:?}", endpoint);
 
-    let mut mqtt_options = MqttOptions::new("test-1", endpoint, 8883);
+    let mut mqtt_options = MqttOptions::new(&thing_name, endpoint, 8883);
     mqtt_options
         .set_keep_alive(Duration::from_secs(30))
         .set_transport(Transport::tls(
@@ -189,17 +191,12 @@ async fn main() -> Result<(), Error> {
     //     let event = eventloop.poll().await;
     //     println!("{:?}", event.unwrap());
     // }
-
-    // tokio::join!(
-    //     // util::publish(client, "hello/world"), // easysetup::createThing(client, &name, &name),
-    //     mqtt::publish(
-    //         client,
-    //         payload.into(),
-    //         "hello/world",
-    //         QoS::AtLeastOnce,
-    //         true
-    //     )
-    // );
+    // let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
+    let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
+    tokio::join!(
+        // util::publish(client, "hello/world"), // easysetup::createThing(client, &name, &name),
+        mqtt::publish(client, payload.into(), topic, QoS::AtLeastOnce, true)
+    );
 
     while let Ok(notification) = eventloop.poll().await {
         println!("Received = {:?}", notification);

@@ -174,7 +174,7 @@ pub struct FleetStatusService {
 pub fn uploadFleetStatusServiceData(
     name: &str, // overAllStatus: OverallStatus,
                 // deploymentInformation: DeploymentInformation,
-) {
+) -> FleetStatusDetails {
     // if (!isConnected.get()) {
     // if true {
     //     info!("Not updating fleet status data since MQTT connection is interrupted.");
@@ -205,7 +205,8 @@ pub fn uploadFleetStatusServiceData(
         "Status update published to FSS"
     );
 
-    println!("{}", json!(payload));
+    // println!("{}", json!(payload));
+    payload
 
     // serde_string
 }
