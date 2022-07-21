@@ -59,7 +59,14 @@ impl Service for Status {
     }
 
     fn start() {
-        println!("Status start...")
+        println!("Status start...");
+        let mut payload = FleetStatusDetails::new();
+        // payload.components.push(SERVICES.get("FleetStatusService").unwrap().value().clone());
+        SERVICES
+            .iter()
+            .for_each(|r| payload.components.push(r.value().clone()));
+
+        println!("{}", json!(payload));
     }
 }
 
@@ -77,8 +84,8 @@ pub struct FleetStatusDetails {
 
     sequenceNumber: usize,
 
-    componentStatusDetails: Vec<crate::services::ServiceStatus>,
-    // componentStatusDetails: Vec<ComponentStatusDetails>,
+    components: Vec<crate::services::ServiceStatus>,
+    // components: Vec<ComponentStatusDetails>,
     deploymentInformation: String,
     // pub void setVariablePayload(List<ComponentStatusDetails> variablePayload) {
     //     this.setComponentStatusDetails(variablePayload),
@@ -95,7 +102,7 @@ impl FleetStatusDetails {
             overallStatus: OverallStatus::HEALTHY,
             sequenceNumber: 5,
             deploymentInformation: "".to_string(),
-            componentStatusDetails: vec![],
+            components: vec![],
         }
     }
 }

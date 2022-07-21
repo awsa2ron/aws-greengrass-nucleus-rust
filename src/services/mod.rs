@@ -35,7 +35,7 @@ pub trait Service {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ServiceStatus {
     componentName: &'static str,
     version: &'static str,
@@ -61,12 +61,7 @@ pub fn start_services() {
     // for (name, state) in SERVICES.iter() {
     //     println!("name is {name} and state is {state}");
     // }
-    // let mut payload = status::FleetStatusDetails::new();
-    // SERVICES.iter().for_each(|r|  payload.componentStatusDetails.push(json!(r.value())));
     // print!("Status is {}", json!(status::FleetStatusDetails::new()));
-    SERVICES
-        .iter()
-        .for_each(|r| print!("key: {}, value: {}", r.key(), json!(r.value())));
     Status::start();
 }
 #[cfg(test)]
