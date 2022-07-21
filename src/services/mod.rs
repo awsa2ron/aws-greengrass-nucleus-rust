@@ -7,7 +7,7 @@ pub mod telemetry;
 
 use crate::dependency::State;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
@@ -20,7 +20,7 @@ pub trait Service {
             componentName: "",
             version: "",
             fleetConfigArns: vec![],
-            statusDetails: "",
+            statusDetails: json!(null),
             isRoot: false,
             state: State::FINISHED,
         }
@@ -40,7 +40,7 @@ pub struct ServiceStatus {
     componentName: &'static str,
     version: &'static str,
     fleetConfigArns: Vec<String>,
-    statusDetails: &'static str,
+    statusDetails: Value,
     // We need to add this since during serialization, the 'is' is removed.
     isRoot: bool,
     state: State,
