@@ -51,11 +51,12 @@ use tracing::{debug, event, info, span, Level};
 use crate::services::{Service, ServiceStatus, SERVICES};
 
 const VERSION: &str = "0.0.0";
+const NAME: &str = "FleetStatusService";
 pub struct Status {}
 
 impl Service for Status {
     fn enable() {
-        SERVICES.insert("FleetStatusService".to_string(), Status::new());
+        SERVICES.insert("FleetStatusService".to_string(), Status::new(NAME));
     }
 
     fn start() {

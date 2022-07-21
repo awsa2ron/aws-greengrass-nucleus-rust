@@ -6,6 +6,6 @@ pub struct Kernel {}
 
 impl Service for Kernel {
     fn enable() {
-        SERVICES.insert(NAME.to_string(), Kernel::new());
+        SERVICES.insert(NAME.to_string(), Kernel::new(NAME));
     }
 }
