@@ -16,7 +16,18 @@ pub trait Service {
     // fn start() -> bool;
     // fn restart() -> bool;
     // fn stop() -> bool;
-    // fn status() -> bool;
+    fn status() -> ServiceStatus;
+}
+
+use crate::dependency::State;
+pub struct ServiceStatus {
+    componentName: &'static str,
+    version: &'static str,
+    fleetConfigArns: Vec<String>,
+    statusDetails: &'static str,
+    // We need to add this since during serialization, the 'is' is removed.
+    isRoot: bool,
+    state: State,
 }
 
 use deployment::Deployments;
@@ -52,9 +63,13 @@ mod tests {
         Telemetry::enable();
         Deployments::enable();
         Policy::enable();
-        assert_eq!(*SERVICES.get("aws.greengrass.Nucleus").unwrap(), 0);
-        assert_eq!(*SERVICES.get("UpdateSystemPolicyService").unwrap(), 2);
-        assert_eq!(*SERVICES.get("DeploymentService").unwrap(), 3);
-        assert_eq!(*SERVICES.get("TelemetryAgent").unwrap(), 4);
+        // assert_eq!(*SERVICES.get("aws.greengrass.Nucleus").unwrap(), 0);
+        // assert_eq!(*SERVICES.get("UpdateSystemPolicyService").unwrap(), 2);
+        // assert_eq!(*SERVICES.get("DeploymentService").unwrap(), 3);
+        // assert_eq!(*SERVICES.get("TelemetryAgent").unwrap(), 4);
+    }
+    #[test]
+    fn services_status_test() {
+        assert_eq!(Kernel::status().version, "2.5.5");
     }
 }
