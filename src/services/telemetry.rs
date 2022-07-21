@@ -1,4 +1,3 @@
-use crate::dependency::State;
 use crate::services::{Service, ServiceStatus, SERVICES};
 
 const VERSION: &str = "0.0.0";

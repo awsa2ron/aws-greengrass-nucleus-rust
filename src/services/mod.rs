@@ -5,9 +5,9 @@ pub mod policy;
 pub mod status;
 pub mod telemetry;
 
+use crate::dependency::State;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use crate::dependency::State;
 
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
@@ -49,6 +49,7 @@ pub struct ServiceStatus {
 use deployment::Deployments;
 use kernel::Kernel;
 use policy::Policy;
+use status::Status;
 use telemetry::Telemetry;
 
 pub fn start_services() {
@@ -56,10 +57,17 @@ pub fn start_services() {
     Policy::enable();
     Deployments::enable();
     Telemetry::enable();
+    Status::enable();
     // for (name, state) in SERVICES.iter() {
     //     println!("name is {name} and state is {state}");
     // }
-    SERVICES.iter().for_each(|r| println!("key: {}, value: {}", r.key(), json!(r.value())));
+    // let mut payload = status::FleetStatusDetails::new();
+    // SERVICES.iter().for_each(|r|  payload.componentStatusDetails.push(json!(r.value())));
+    // print!("Status is {}", json!(status::FleetStatusDetails::new()));
+    SERVICES
+        .iter()
+        .for_each(|r| print!("key: {}, value: {}", r.key(), json!(r.value())));
+    Status::start();
 }
 #[cfg(test)]
 mod tests {

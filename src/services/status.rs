@@ -48,6 +48,21 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::{debug, event, info, span, Level};
 
+use crate::services::{Service, ServiceStatus, SERVICES};
+
+const VERSION: &str = "0.0.0";
+pub struct Status {}
+
+impl Service for Status {
+    fn enable() {
+        SERVICES.insert("FleetStatusService".to_string(), Status::new());
+    }
+
+    fn start() {
+        println!("Status start...")
+    }
+}
+
 // implements Chunkable<ComponentStatusDetails>
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FleetStatusDetails {
@@ -62,8 +77,8 @@ pub struct FleetStatusDetails {
 
     sequenceNumber: usize,
 
-    componentStatusDetails: Vec<ComponentStatusDetails>,
-
+    componentStatusDetails: Vec<crate::services::ServiceStatus>,
+    // componentStatusDetails: Vec<ComponentStatusDetails>,
     deploymentInformation: String,
     // pub void setVariablePayload(List<ComponentStatusDetails> variablePayload) {
     //     this.setComponentStatusDetails(variablePayload),
@@ -71,7 +86,7 @@ pub struct FleetStatusDetails {
 }
 
 impl FleetStatusDetails {
-    fn new() -> Self {
+    pub fn new() -> Self {
         FleetStatusDetails {
             ggcVersion: "2.5.5",
             platform: "linux",
