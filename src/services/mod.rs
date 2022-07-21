@@ -10,7 +10,7 @@ use crate::dependency::State;
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 
-pub static SERVICES: Lazy<DashMap<String, i32>> = Lazy::new(|| DashMap::new());
+pub static SERVICES: Lazy<DashMap<String, ServiceStatus>> = Lazy::new(|| DashMap::new());
 
 pub trait Service {
     fn new() -> ServiceStatus {
@@ -23,7 +23,7 @@ pub trait Service {
             state: State::FINISHED,
         }
     }
-    fn enable() -> bool;
+    fn enable();
     // fn disable() -> bool;
     // fn start() -> bool;
     // fn restart() -> bool;
@@ -60,7 +60,24 @@ mod tests {
 
     #[test]
     fn services_test() {
-        Kernel::new();
-        assert_eq!(Kernel::status(), State::FINISHED);
+        Kernel::enable();
+        assert_eq!(
+            SERVICES
+                .get("aws.greengrass.Nucleus")
+                .unwrap()
+                .componentName,
+            ""
+        );
+        assert_eq!(SERVICES.get("aws.greengrass.Nucleus").unwrap().version, "");
+        // assert_eq!(SERVICES.get("aws.greengrass.Nucleus").unwrap().fleetConfigArns, vec![]);
+        // assert_eq!(SERVICES.get("aws.greengrass.Nucleus").unwrap().statusDetails, null);
+        assert_eq!(
+            SERVICES.get("aws.greengrass.Nucleus").unwrap().isRoot,
+            false
+        );
+        assert_eq!(
+            SERVICES.get("aws.greengrass.Nucleus").unwrap().state,
+            State::FINISHED
+        );
     }
 }
