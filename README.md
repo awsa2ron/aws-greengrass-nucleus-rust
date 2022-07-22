@@ -103,3 +103,17 @@ Publish:
 > cargo publish
 
 ## Design
+
+### Configuration
+### *Kernel, It's fundamentally a hierarchic key-value store*
+
+
+![Overview](/docs/images/Overview.jpg)
+
+![Kernel](/docs/images/KernelTLogInit.png)
+
+### Dependency & lifetiem
+![Dependency](/docs/images/DependencyStateTime.png)
+### Deployment
+![Deployment](/docs/images/IotJobsDeployment.png)
+[Configuration](/docs/images/ConfigurationTree.png)
