@@ -48,7 +48,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::{debug, event, info, span, Level};
 
-use crate::services::{Service, ServiceStatus, SERVICES};
+use crate::services::{Service, SERVICES};
 
 const VERSION: &str = "";
 const NAME: &str = "FleetStatusService";
@@ -56,7 +56,7 @@ pub struct Status {}
 
 impl Service for Status {
     fn enable() {
-        SERVICES.insert("FleetStatusService".to_string(), Status::new(NAME, VERSION));
+        SERVICES.insert(NAME.to_string(), Self::new(NAME, VERSION));
     }
 }
 
