@@ -72,6 +72,9 @@ open documentation:
 Compile local packages and all of their dependencies:
 > cargo b(uild)
 
+Release build:
+> cargo b --release
+
 Cross-compile:
 > rustup target list
 > rustup target add <arch->

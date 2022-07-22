@@ -3,7 +3,6 @@ name = "aws-greengrass-nucleus"
 version = "0.0.2"
 authors = ["Aaron Tsui <kaixu@amazon.com>"]
 edition = "2021"
-rust-version = "1.56"
 description = "aws greengrass nucleus in Rust (unofficial)"
 documentation = "https://docs.aws.amazon.com/greengrass/"
 readme = "README.md"
@@ -16,18 +15,6 @@ categories = [
     "command-line-utilities",
     "wasm"
 ]
-# workspace = "path/to/workspace/root"
-# build = "build.rs"
-# links = "foo"
-# exclude = ["/ci", "images/", ".*"]
-# include = ["/src", "COPYRIGHT", "/examples", "!/examples/big_example"]
-# publish = ["aws-greengrass-nucleus"]
-# default-run = "main"
-
-# [package.metadata.android]
-# package-name = "my-awesome-android-app"
-# assets = "path/to/static"
-
 
 [dependencies]
 aws-types = "0.15.0"
@@ -46,3 +33,6 @@ once_cell = "1.0"
 toml = "0.5"
 anyhow = "1.0"
 dashmap = "5"
+
+[profile.release]
+strip = "debuginfo"
