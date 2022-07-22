@@ -182,15 +182,6 @@ async fn main() -> Result<(), Error> {
         ));
 
     let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
-    // task::spawn(async move {
-    //     requests(client).await;
-    //     time::sleep(Duration::from_secs(3)).await;
-    // });
-
-    // loop {
-    //     let event = eventloop.poll().await;
-    //     println!("{:?}", event.unwrap());
-    // }
     // let topic = format!("greengrassv2/health/json");
     let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
     info!("Send {payload} to {topic}");
