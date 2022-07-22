@@ -14,6 +14,14 @@ use once_cell::sync::Lazy;
 
 pub static SERVICES: Lazy<DashMap<String, ServiceStatus>> = Lazy::new(|| DashMap::new());
 
+/// ```
+/// /// Some documentation.
+/// # fn foo() {} // this function will be hidden
+/// println!("Hello, World!");
+/// let foo = "foo";
+/// assert_eq!(foo, "foo");
+/// ```
+
 pub trait Service {
     fn new(name: &'static str, ver: &'static str) -> ServiceStatus {
         ServiceStatus {
@@ -65,35 +73,5 @@ mod tests {
     fn it_works() {
         let result = 2 + 2;
         assert_eq!(result, 4);
-    }
-    use crate::services::{Service, SERVICES};
-
-    use super::deployment::Deployments;
-    use super::kernel::Kernel;
-    use super::policy::Policy;
-    use super::telemetry::Telemetry;
-    use crate::dependency::State;
-
-    #[test]
-    fn services_test() {
-        Kernel::enable();
-        assert_eq!(
-            SERVICES
-                .get("aws.greengrass.Nucleus")
-                .unwrap()
-                .componentName,
-            ""
-        );
-        assert_eq!(SERVICES.get("aws.greengrass.Nucleus").unwrap().version, "");
-        // assert_eq!(SERVICES.get("aws.greengrass.Nucleus").unwrap().fleetConfigArns, vec![]);
-        // assert_eq!(SERVICES.get("aws.greengrass.Nucleus").unwrap().statusDetails, null);
-        assert_eq!(
-            SERVICES.get("aws.greengrass.Nucleus").unwrap().isRoot,
-            false
-        );
-        assert_eq!(
-            SERVICES.get("aws.greengrass.Nucleus").unwrap().status,
-            State::FINISHED
-        );
     }
 }

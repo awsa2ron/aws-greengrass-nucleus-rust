@@ -66,4 +66,37 @@ misc:
 
 ## How to
 
+open documentation:
+> cargo doc --open
+
+Compile local packages and all of their dependencies:
+> cargo b(uild)
+
+Cross-compile:
+> rustup target list
+> rustup target add <arch->
+> cargo b --target <>
+
+Cross-compile for Raspberry:
+> https://robamu.github.io/post/cross-compile-rust-rpi/
+
+
+Cross-compile for OpenWRT:
+> https://blog.dend.ro/building-rust-for-routers/
+
+Fast check:
+> cargo c(heck)
+
+Run:
+> cargo run (-- <your-args>)
+
+Test:
+> cargo test
+
+Documentation tests:
+> https://doc.rust-lang.org/rustdoc/write-documentation/documentation-tests.html#documentation-tests
+
+Publish:
+> cargo publish
+
 ## Design
