@@ -101,9 +101,9 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
 
 pub async fn performSetup(
     name: &str,
-    region: &'static str,
+    region: String,
     needProvisioning: bool,
-    thing_policy_name: Option<&str>,
+    thing_policy_name: &str,
 ) {
     let region_provider = RegionProviderChain::first_try(Region::new(region))
         .or_default_provider()
@@ -115,7 +115,7 @@ pub async fn performSetup(
         provision(
             client,
             name,
-            thing_policy_name.unwrap_or("IoTAdmin"),
+            thing_policy_name,
         )
         .await;
     }

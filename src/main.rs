@@ -20,8 +20,8 @@ use tracing_subscriber;
 struct Args {
     // The AWS Region to use. The AWS IoT Greengrass Core software uses this Region
     // to retrieve or create the AWS resources that it requires
-    #[clap(long)]
-    aws_region: Option<String>,
+    #[clap(long, default_value = "ap-southeast-1")]
+    aws_region: String,
 
     // (Optional) The path to the folder to use as the root for the AWS IoT Greengrass Core
     // software. Defaults to ~/.greengrass.
@@ -31,8 +31,8 @@ struct Args {
     // (Optional) The path to the configuration file that you use to run the AWS
     // IoT Greengrass Core software
     // software. Defaults to ~/.greengrass
-    #[clap(long)]
-    init_config: Option<String>,
+    #[clap(long, default_value = "~/.greengrass")]
+    init_config: String,
 
     // (Optional) Specify true or false. If true, the AWS IoT Greengrass Core software registers this
     // device as an AWS IoT thing, and provisions the AWS resources that the software requires. The
@@ -62,8 +62,8 @@ struct Args {
     // Otherwise a policy called GreengrassV2IoTThingPolicy is used instead. If the policy with
     // this name doesn't exist in your AWS account, the AWS IoT Greengrass Core software creates it
     // with a default policy document.
-    #[clap(long)]
-    thing_policy_name: Option<String>,
+    #[clap(long, default_value = "~/.greengrass")]
+    thing_policy_name: String,
 
     // (Optional) The name of the IAM role to use to acquire AWS credentials that let the device
     // interact with AWS services. If the role with this name doesn't exist in your AWS account, " the AWS
@@ -71,16 +71,16 @@ struct Args {
     // This role doesn't have access to your S3 buckets where you host component artifacts. So, you
     // must add permissions to your artifacts' S3 buckets and objects when you create a component.
     // Defaults to GreengrassV2TokenExchangeRole.
-    #[clap(long)]
-    tes_role_name: Option<String>,
+    #[clap(long, default_value = "GreengrassV2TokenExchangeRole")]
+    tes_role_name: String,
 
     // (Optional) The name of the AWS IoT role alias that points to the IAM role that provides AWS
     // credentials for this device. If the role alias with this name doesn't exist in your AWS "
     // account, the
     // AWS IoT Greengrass Core software creates it and points it to the IAM role that you specify.
     // Defaults to GreengrassV2TokenExchangeRoleAlias.
-    #[clap(long)]
-    tes_role_alias_name: Option<String>,
+    #[clap(long, default_value = "GreengrassV2TokenExchangeRoleAlias")]
+    tes_role_alias_name: String,
 
     // (Optional) Specify true or false. If true, then the AWS IoT Greengrass Core software sets
     // itself up as a system service that runs when this device boots. The system service name is "
@@ -147,9 +147,9 @@ async fn main() -> Result<(), Error> {
 
     easysetup::performSetup(
         &thing_name,
-        aws_region.unwrap_or("ap-southeast-1".into()),
+        aws_region,
         provision,
-        thing_policy_name,
+        &thing_policy_name,
     )
     .await;
 
