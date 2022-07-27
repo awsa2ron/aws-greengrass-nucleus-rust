@@ -9,10 +9,10 @@ use std::time::Duration;
 async fn main() -> Result<(), Error> {
     let thing_name = "test";
     nucleus::easysetup::performSetup(
-        thing_name.into(),
-        "ap-southeast-1".into(),
+        thing_name,
+        "ap-southeast-1",
         true,
-        Some("policy".into()),
+        Some("policy"),
     )
     .await;
 
