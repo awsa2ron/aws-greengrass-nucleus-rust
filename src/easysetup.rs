@@ -101,11 +101,11 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
 
 pub async fn performSetup(
     name: &str,
-    region: String,
+    region: &str,
     needProvisioning: bool,
     thing_policy_name: &str,
 ) {
-    let region_provider = RegionProviderChain::first_try(Region::new(region))
+    let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
         .or_default_provider()
         .or_else(Region::new("ap-southeast-1"));
     let shared_config = aws_config::from_env().region(region_provider).load().await;

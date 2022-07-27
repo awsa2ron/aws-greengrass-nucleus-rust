@@ -147,7 +147,7 @@ async fn main() -> Result<(), Error> {
 
     easysetup::performSetup(
         &thing_name,
-        aws_region,
+        &aws_region,
         provision,
         &thing_policy_name,
     )

@@ -10,7 +10,7 @@ async fn main() -> Result<(), Error> {
     let thing_name = "test";
     nucleus::easysetup::performSetup(
         thing_name,
-        "ap-southeast-1".to_string(),
+        "ap-southeast-1",
         true,
         "policy",
     )
