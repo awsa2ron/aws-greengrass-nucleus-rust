@@ -16,8 +16,6 @@ async fn main() -> Result<(), Error> {
     )
     .await;
 
-    let payload = json!(nucleus::uploadFleetStatusServiceData(&thing_name));
-
     let mut mqtt_options = MqttOptions::new(thing_name, "endpoint", 8883);
     mqtt_options
         .set_keep_alive(Duration::from_secs(30))
@@ -32,6 +30,7 @@ async fn main() -> Result<(), Error> {
 
     let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
     let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
+    let payload = json!(nucleus::FleetStatus(&thing_name));
     tokio::join!(nucleus::publish(
         client,
         payload.to_string().into(),
