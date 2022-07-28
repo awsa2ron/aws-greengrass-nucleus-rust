@@ -101,23 +101,18 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
 
 pub async fn performSetup(
     name: &str,
-    region: String,
+    region: &str,
     needProvisioning: bool,
-    thing_policy_name: Option<String>,
+    thing_policy_name: &str,
 ) {
-    let region_provider = RegionProviderChain::first_try(Region::new(region))
+    let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
         .or_default_provider()
         .or_else(Region::new("ap-southeast-1"));
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&shared_config);
 
     if needProvisioning {
-        provision(
-            client,
-            name,
-            thing_policy_name.unwrap_or("IoTAdmin".to_string()),
-        )
-        .await;
+        provision(client, name, thing_policy_name).await;
     }
 
     info!("Launching Nucleus...");
@@ -125,7 +120,7 @@ pub async fn performSetup(
     info!("Launched Nucleus successfully.");
 }
 
-async fn provision(client: Client, name: &str, policy_name: String) {
+async fn provision(client: Client, name: &str, policy_name: &str) {
     info!(
         "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
         name
