@@ -1,7 +1,8 @@
 # aws-greengrass-nucleus-rust
-aws greengrass nucleus in Rust (unofficial)
+aws greengrass nucleus in Rust programming language (unofficial)
 
 
+## Motivation
 ---
 > ### What I cannot create, I do not understand.
 >
@@ -12,6 +13,37 @@ aws greengrass nucleus in Rust (unofficial)
 >>
 
 ---
+
+## Quickstart
+> cargo run -- --version
+``` 
+aws-greengrass-nucleus 0.0.3
+```
+
+> cargo run -- --help
+```
+aws-greengrass-nucleus 0.0.3
+aws greengrass nucleus in Rust (unofficial)
+
+USAGE:
+    aws-greengrass-nucleus [OPTIONS] --thing-name <THING_NAME>
+
+OPTIONS:
+        --aws-region <AWS_REGION>
+            [default: ap-southeast-1]
+
+        --component-default-user <COMPONENT_DEFAULT_USER>
+            
+
+        --deploy-dev-tools
+        ...
+```
+
+> cargo run -- --aws-region ap-southeast-1 --thing-name coreName  --component-default-user ggc_user:ggc_group --provision
+>
+```
+same as original nucleus
+```
 
 ## Nucleus
 The Greengrass nucleus component (aws.greengrass.Nucleus) is a **mandatory** component and the **minimum** requirement to run the AWS IoT Greengrass Core software on a device. 
@@ -34,7 +66,7 @@ The Greengrass nucleus component (aws.greengrass.Nucleus) is a **mandatory** com
     The maximum amount of RAM (in kilobytes) that each component's processes can use on the core device.
 
 ### How v2 works?
-**Greengrass v2 CLI**
+(**Greengrass v2 CLI**)[https://awscli.amazonaws.com/v2/documentation/api/2.1.30/reference/greengrassv2/index.html]
 
 core-device:
 - list-core-devices
@@ -91,7 +123,7 @@ Fast check:
 > cargo c(heck)
 
 Run:
-> cargo run (-- <your-args>)
+> cargo run (-- your-args)
 
 Test:
 > cargo test
