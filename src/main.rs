@@ -145,13 +145,7 @@ async fn main() -> Result<(), Error> {
 
     tracing_subscriber::fmt::init();
 
-    easysetup::performSetup(
-        &thing_name,
-        &aws_region,
-        provision,
-        &thing_policy_name,
-    )
-    .await;
+    easysetup::performSetup(&thing_name, &aws_region, provision, &thing_policy_name).await;
 
     let payload =
         json!(aws_greengrass_nucleus::services::status::uploadFleetStatusServiceData(&thing_name))

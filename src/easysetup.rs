@@ -112,12 +112,7 @@ pub async fn performSetup(
     let client = Client::new(&shared_config);
 
     if needProvisioning {
-        provision(
-            client,
-            name,
-            thing_policy_name,
-        )
-        .await;
+        provision(client, name, thing_policy_name).await;
     }
 
     info!("Launching Nucleus...");

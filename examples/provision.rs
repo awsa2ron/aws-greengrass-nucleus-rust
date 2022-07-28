@@ -3,22 +3,14 @@ use aws_greengrass_nucleus as nucleus;
 use rumqttc::{self, AsyncClient, Key, MqttOptions, QoS, Transport};
 use serde_json::json;
 use std::fs;
-use std::time::Duration;
+use tokio::{task, time};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let thing_name = "test";
-    nucleus::easysetup::performSetup(
-        thing_name,
-        "ap-southeast-1",
-        true,
-        "policy",
-    )
-    .await;
 
     let mut mqtt_options = MqttOptions::new(thing_name, "endpoint", 8883);
     mqtt_options
-        .set_keep_alive(Duration::from_secs(30))
         .set_transport(Transport::tls(
             fs::read("rootCA.pem")?,
             Some((
@@ -28,16 +20,18 @@ async fn main() -> Result<(), Error> {
             None,
         ));
 
+    nucleus::easysetup::performSetup(thing_name, "region", true, "policy").await;
+
     let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
     let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
-    let payload = json!(nucleus::FleetStatus(&thing_name));
-    tokio::join!(nucleus::publish(
-        client,
-        payload.to_string().into(),
-        topic,
-        QoS::AtLeastOnce,
-        true
-    ));
+    let payload = nucleus::FleetStatus(thing_name);
+
+    task::spawn(async move {
+        client
+            .publish(topic, QoS::AtLeastOnce, false, json!(payload).to_string())
+            .await
+            .unwrap();
+    });
 
     while let Ok(notification) = eventloop.poll().await {
         println!("Received = {:?}", notification);

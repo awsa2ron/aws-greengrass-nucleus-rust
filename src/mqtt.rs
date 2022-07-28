@@ -56,7 +56,7 @@ pub async fn publish<'a>(
 }
 
 async fn requests<'a>(client: AsyncClient, message: Vec<u8>, topic: String) -> Result<(), Error> {
-    client.subscribe(&topic, QoS::AtMostOnce).await.unwrap();
+    // client.subscribe(&topic, QoS::AtMostOnce).await.unwrap();
 
     task::spawn(async move {
         client
