@@ -1,4 +1,7 @@
 # aws-greengrass-nucleus-rust
+
+[![crates.io page](https://img.shields.io/badge/crates.io-0.0.3-brightgreen)](https://crates.io/crates/aws-greengrass-nucleus)
+
 aws greengrass nucleus in Rust programming language (unofficial)
 
 
@@ -161,3 +164,7 @@ Publish:
 > https://github.com/xacrimon/dashmap
 ### other
 ![Kernel](/docs/images/KernelTLogInit.png)
+
+## Use case
+The following example shows how an AWS IoT Greengrass device interacts with the AWS IoT Greengrass cloud service and other AWS services in the AWS Cloud.
+![example](/docs/images/example.png)
