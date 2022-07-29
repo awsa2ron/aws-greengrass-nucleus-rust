@@ -1,4 +1,7 @@
 # aws-greengrass-nucleus-rust
+
+[![crates.io page](https://img.shields.io/badge/crates.io-0.0.3-brightgreen)](https://crates.io/crates/aws-greengrass-nucleus)
+
 aws greengrass nucleus in Rust programming language (unofficial)
 
 
