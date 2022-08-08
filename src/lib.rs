@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 pub mod config;
 pub mod dependency;
 pub mod easysetup;
@@ -9,4 +11,4 @@ pub mod services;
 
 pub use self::easysetup::performSetup;
 pub use self::mqtt::publish;
-pub use self::services::status::uploadFleetStatusServiceData as FleetStatus;
+pub use self::services::status::upload_fss_data as fleet_status;

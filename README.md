@@ -7,23 +7,23 @@ aws greengrass nucleus in Rust programming language (unofficial)
 
 ## Motivation
 ---
-> ### What I cannot create, I do not understand.
+> **What I cannot create, I do not understand.**
 >
-> ### Know how to solve every problem that has been solved. 
+> **Know how to solve every problem that has been solved.**
 >
 >                                       ————  Richard Feynman 
->> on his blackboard at the time of death in February 1988; 
+>> *on his blackboard at the time of death in February 1988;*
 >>
 
 ---
 
 ## Quickstart
-> cargo run -- --version
+1. cargo run -- --version
 ``` 
 aws-greengrass-nucleus 0.0.3
 ```
 
-> cargo run -- --help
+2. cargo run -- --help
 ```
 aws-greengrass-nucleus 0.0.3
 aws greengrass nucleus in Rust (unofficial)
@@ -42,8 +42,7 @@ OPTIONS:
         ...
 ```
 
-> cargo run -- --aws-region ap-southeast-1 --thing-name coreName  --component-default-user ggc_user:ggc_group --provision
->
+3. cargo run -- --aws-region ap-southeast-1 --thing-name coreName  --component-default-user ggc_user:ggc_group --provision
 ```
 same as original nucleus
 ```
@@ -69,7 +68,7 @@ The Greengrass nucleus component (aws.greengrass.Nucleus) is a **mandatory** com
     The maximum amount of RAM (in kilobytes) that each component's processes can use on the core device.
 
 ### How v2 works?
-(**Greengrass v2 CLI**)[https://awscli.amazonaws.com/v2/documentation/api/2.1.30/reference/greengrassv2/index.html]
+[Greengrass v2 CLI](https://awscli.amazonaws.com/v2/documentation/api/2.1.30/reference/greengrassv2/index.html)
 
 core-device:
 - list-core-devices
@@ -101,70 +100,46 @@ misc:
 
 ## How to
 
-open documentation:
+- open documentation:
 > cargo doc --open
 
-Compile local packages and all of their dependencies:
+- Compile local packages and all of their dependencies:
 > cargo b(uild)
 
-Release build:
+- Release build:
 > cargo b --release
 
-Cross-compile:
+- Cross-compile:
 > rustup target list
 > rustup target add <arch->
 > cargo b --target <>
 
-Cross-compile for Raspberry:
+- Cross-compile for Raspberry:
 > https://robamu.github.io/post/cross-compile-rust-rpi/
 
 
-Cross-compile for OpenWRT:
+- Cross-compile for OpenWRT:
 > https://blog.dend.ro/building-rust-for-routers/
 
-Fast check:
+- Fast check:
 > cargo c(heck)
 
-Run:
+- Run:
 > cargo run (-- your-args)
 
-Test:
+- Test:
 > cargo test
 
-Documentation tests:
+- Documentation tests:
 > https://doc.rust-lang.org/rustdoc/write-documentation/documentation-tests.html#documentation-tests
 
-Publish:
+- Publish:
 > cargo publish
 
 ## Design
 
-### Kernel
-### *Kernel, It's fundamentally a hierarchic key-value store*
-![Overview](/docs/images/Overview.jpg)
-### Dependency & lifetime
-![Dependency](/docs/images/DependencyStateTime.png)
-
-> Directed Acyclic Graph (DAG)?
-> https://hazelcast.com/glossary/directed-acyclic-graph/
-
-> State machine?
-> https://doc.rust-lang.org/stable/book/ch17-03-oo-design-patterns.html
-
-### Deployment
-![Deployment](/docs/images/IotJobsDeployment.png)
-> IoT device SDK?
-> https://crates.io/crates/aws-iot-device-sdk
-### Configuration
-![Configuration](/docs/images/ConfigurationTree.png)
-> Hash map?
-> https://doc.rust-lang.org/rust-by-example/std/hash.html
-
-> Need concurrent?
-> https://github.com/xacrimon/dashmap
-### other
-![Kernel](/docs/images/KernelTLogInit.png)
+see docs/design.md
 
 ## Use case
 The following example shows how an AWS IoT Greengrass device interacts with the AWS IoT Greengrass cloud service and other AWS services in the AWS Cloud.
-![example](/docs/images/example.png)
+![example](https://docs.aws.amazon.com/greengrass/v2/developerguide/images/how-it-works.png)
