@@ -24,7 +24,7 @@ async fn main() -> Result<(), Error> {
 
     let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
     let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
-    let payload = nucleus::FleetStatus(thing_name);
+    let payload = nucleus::fleet_status(thing_name);
 
     task::spawn(async move {
         client
