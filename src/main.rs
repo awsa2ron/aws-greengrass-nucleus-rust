@@ -187,6 +187,19 @@ async fn main() -> Result<(), Error> {
 
     while let Ok(notification) = eventloop.poll().await {
         println!("Received = {:?}", notification);
+        match notification {
+            rumqttc::Event::Incoming(rumqttc::Packet::Publish(v )) => {
+
+            // println!("{:?}", v.dup);
+            println!("QoS is {:?}", v.qos);
+            println!("Retain is {:?}", v.retain);
+            // println!("ID is {:?}", v.pkid);
+            println!("Topic is {:?}", v.topic);
+            println!("{:#?}", v.payload);
+            }
+            rumqttc::Event::Incoming(_) => {}
+            rumqttc::Event::Outgoing(_) => {}
+        }
     }
 
     Ok(())
