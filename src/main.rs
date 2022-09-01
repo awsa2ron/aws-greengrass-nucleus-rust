@@ -62,7 +62,7 @@ struct Args {
     // Otherwise a policy called GreengrassV2IoTThingPolicy is used instead. If the policy with
     // this name doesn't exist in your AWS account, the AWS IoT Greengrass Core software creates it
     // with a default policy document.
-    #[clap(long, default_value = "~/.greengrass")]
+    #[clap(long, default_value = "GreengrassV2IoTThingPolicy")]
     thing_policy_name: String,
 
     // (Optional) The name of the IAM role to use to acquire AWS credentials that let the device
@@ -147,15 +147,9 @@ async fn main() -> Result<(), Error> {
 
     easysetup::performSetup(&thing_name, &aws_region, provision, &thing_policy_name).await;
 
-    let payload =
-        json!(aws_greengrass_nucleus::services::status::upload_fss_data(&thing_name))
-            .to_string();
-
     config::init();
     let endpoint = config::Config::global().endpoint.iot_ats.to_string();
     info!("Endpoint: {}", endpoint);
-
-    // let payload = String::new();
 
     let rootDir = Path::new(".");
     let caFilePath = rootDir.join("rootCA.pem");
@@ -176,13 +170,20 @@ async fn main() -> Result<(), Error> {
         ));
 
     let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
-    // let topic = format!("greengrassv2/health/json");
-    let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
-    info!("Send {payload} to {topic}");
-    tokio::join!(
-        // util::publish(client, "hello/world"), // easysetup::createThing(client, &name, &name),
-        mqtt::publish(client, payload.into(), topic, QoS::AtLeastOnce, true)
-    );
+
+    if provision {
+        let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
+        let payload = json!(aws_greengrass_nucleus::services::status::upload_fss_data(
+            &thing_name
+        ))
+        .to_string();
+        info!("Send {payload} to {topic}");
+        client.publish(topic, QoS::AtLeastOnce, false, payload).await.unwrap();
+    }
+
+    let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/#");
+    client.subscribe(topic, QoS::AtMostOnce).await.unwrap();
+
 
     while let Ok(notification) = eventloop.poll().await {
         println!("Received = {:?}", notification);
