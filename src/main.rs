@@ -1,3 +1,6 @@
+#![allow(non_snake_case)]
+#![allow(unused)]
+
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_greengrass_nucleus::{config, easysetup, mqtt, provisioning, util};
@@ -188,7 +191,7 @@ async fn main() -> Result<(), Error> {
     while let Ok(notification) = eventloop.poll().await {
         println!("Received = {:?}", notification);
         match notification {
-            rumqttc::Event::Incoming(rumqttc::Packet::Publish(v )) => {
+            rumqttc::Event::Incoming(rumqttc::Packet::Publish(v)) => {
 
             // println!("{:?}", v.dup);
             println!("QoS is {:?}", v.qos);
