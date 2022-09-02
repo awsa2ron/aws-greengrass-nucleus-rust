@@ -185,7 +185,7 @@ async fn main() -> Result<(), Error> {
     }
 
     let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/#");
-    client.subscribe(topic, QoS::AtMostOnce).await.unwrap();
+    client.subscribe(&topic, QoS::AtMostOnce).await.unwrap();
 
     while let Ok(notification) = eventloop.poll().await {
         println!("Received = {:?}", notification);
@@ -199,7 +199,7 @@ async fn main() -> Result<(), Error> {
                 // println!("{:#?}", v.payload);
                 if v.topic.rfind("delta") != None {
                     let v: Value = serde_json::from_slice(&v.payload).unwrap();
-                    println!("{}", v["version"]);
+                    let shadow_version = v["version"].clone();
                     let v = v["state"]["fleetConfig"]
                         .to_string()
                         .replace("\\", "")
@@ -212,7 +212,18 @@ async fn main() -> Result<(), Error> {
                         .trim_matches('"')
                         .to_string();
                     if let Some((arn, version)) = configuration_arn.rsplit_once(':') {
+                        client.unsubscribe(&topic).await.unwrap();
+                        time::sleep(Duration::from_secs(3)).await;
                         println!("{arn}|{version}");
+                        let c = client.clone();
+                        let n = thing_name.clone();
+                        let a = configuration_arn.clone();
+                        let v = shadow_version.to_string();
+                        let s = "IN_PROGRESS".to_string();
+                        task::spawn(async move {
+                            update(c, n, a, v, s).await;
+                            // time::sleep(Duration::from_secs(3)).await;
+                        });
                     }
                 }
             }
@@ -222,6 +233,68 @@ async fn main() -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+async fn update(
+    client: AsyncClient,
+    thing_name: String,
+    arn: String,
+    version: String,
+    status: String,
+) {
+    let topic =
+        format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/update");
+    println!("{topic}");
+
+    let version: u8 = version.parse().unwrap();
+
+    let payload = json!({
+      "shadowName": "AWSManagedGreengrassV2Deployment",
+      "thingName": thing_name,
+      "state": {
+        "reported": {
+          "ggcVersion": "2.5.6",
+          "fleetConfigurationArnForStatus": arn,
+          "statusDetails": {
+            // if status {
+            //     "detailedStatus": "SUCCESSFUL"
+            // }
+          },
+          "status": status
+        }
+      },
+      "version": version
+    });
+    println!("{payload}");
+
+    client
+        .publish(&topic, QoS::AtLeastOnce, false, payload.to_string())
+        .await
+        .unwrap();
+
+    time::sleep(Duration::from_secs(3)).await;
+
+    let payload = json!({
+      "shadowName": "AWSManagedGreengrassV2Deployment",
+      "thingName": thing_name,
+      "state": {
+        "reported": {
+          "ggcVersion": "2.5.6",
+          "fleetConfigurationArnForStatus": arn,
+          "statusDetails": {
+                "detailedStatus": "SUCCESSFUL"
+          },
+          "status": "SUCCEEDED"
+        }
+      },
+      "version": version + 1
+    });
+
+    client
+        .publish(&topic, QoS::AtLeastOnce, false, payload.to_string())
+        .await
+        .unwrap();
+
 }
 
 #[cfg(test)]
