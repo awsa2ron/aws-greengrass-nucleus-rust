@@ -7,6 +7,7 @@ use clap::Parser;
 use rumqttc::{self, AsyncClient, Key, MqttOptions, QoS, Transport};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use serde_json::Value;
 use std::fs;
 use std::path::Path;
 use std::time::Duration;
@@ -178,24 +179,31 @@ async fn main() -> Result<(), Error> {
         ))
         .to_string();
         info!("Send {payload} to {topic}");
-        client.publish(topic, QoS::AtLeastOnce, false, payload).await.unwrap();
+        client
+            .publish(topic, QoS::AtLeastOnce, false, payload)
+            .await
+            .unwrap();
     }
 
     let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/#");
     client.subscribe(topic, QoS::AtMostOnce).await.unwrap();
 
-
     while let Ok(notification) = eventloop.poll().await {
         println!("Received = {:?}", notification);
         match notification {
-            rumqttc::Event::Incoming(rumqttc::Packet::Publish(v )) => {
-
-            // println!("{:?}", v.dup);
-            println!("QoS is {:?}", v.qos);
-            println!("Retain is {:?}", v.retain);
-            // println!("ID is {:?}", v.pkid);
-            println!("Topic is {:?}", v.topic);
-            println!("{:#?}", v.payload);
+            rumqttc::Event::Incoming(rumqttc::Packet::Publish(v)) => {
+                // println!("{:?}", v.dup);
+                println!("QoS is {:?}", v.qos);
+                println!("Retain is {:?}", v.retain);
+                // println!("ID is {:?}", v.pkid);
+                println!("Topic is {:?}", v.topic);
+                // println!("{:#?}", v.payload);
+                if v.topic.rfind("delta") != None {
+                    let v: Value = serde_json::from_slice(&v.payload).unwrap();
+                    println!("{}", v["version"]);
+                    let v = v["state"]["fleetConfig"].to_string();
+                    println!("{}", v);
+                }
             }
             rumqttc::Event::Incoming(_) => {}
             rumqttc::Event::Outgoing(_) => {}

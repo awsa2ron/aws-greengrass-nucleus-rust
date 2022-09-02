@@ -10,15 +10,14 @@ async fn main() -> Result<(), Error> {
     let thing_name = "test";
 
     let mut mqtt_options = MqttOptions::new(thing_name, "endpoint", 8883);
-    mqtt_options
-        .set_transport(Transport::tls(
-            fs::read("rootCA.pem")?,
-            Some((
-                fs::read("thingCert.crt")?,
-                Key::RSA(fs::read("privKey.key")?),
-            )),
-            None,
-        ));
+    mqtt_options.set_transport(Transport::tls(
+        fs::read("rootCA.pem")?,
+        Some((
+            fs::read("thingCert.crt")?,
+            Key::RSA(fs::read("privKey.key")?),
+        )),
+        None,
+    ));
 
     nucleus::easysetup::performSetup(thing_name, "region", true, "policy").await;
 

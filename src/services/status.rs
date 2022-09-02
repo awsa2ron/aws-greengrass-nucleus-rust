@@ -1,5 +1,5 @@
 //! # Fleet Status Service
-//! 
+//!
 //! It is responsible for uploading the statuses of components within the device for all fleets.
 //! The fleet status service will be gathering state from the device and providing it to the customers. The fleet status service is
 //! an important feature to provide insight to the customer on the devices which have greengrass V2 running on them and
