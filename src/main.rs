@@ -200,8 +200,9 @@ async fn main() -> Result<(), Error> {
                 if v.topic.rfind("delta") != None {
                     let v: Value = serde_json::from_slice(&v.payload).unwrap();
                     println!("{}", v["version"]);
-                    let v = v["state"]["fleetConfig"].to_string();
-                    println!("{}", v);
+                    let v = v["state"]["fleetConfig"].to_string().replace("\\", "").trim_matches('"').to_string();
+                    let v: Value = serde_json::from_str(&v[0..=v.len() - 1]).unwrap();
+                    println!("{}", v["configurationArn"]);
                 }
             }
             rumqttc::Event::Incoming(_) => {}
@@ -210,4 +211,15 @@ async fn main() -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn tdd() {
+        let data = r#"
+        "#;
+    }
 }
