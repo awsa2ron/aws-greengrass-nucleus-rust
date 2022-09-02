@@ -201,7 +201,7 @@ async fn main() -> Result<(), Error> {
                     let v: Value = serde_json::from_slice(&v.payload).unwrap();
                     println!("{}", v["version"]);
                     let v = v["state"]["fleetConfig"].to_string().replace("\\", "").trim_matches('"').to_string();
-                    let v: Value = serde_json::from_str(&v[0..=v.len() - 1]).unwrap();
+                    let v: Value = serde_json::from_str(&v).unwrap();
                     println!("{}", v["configurationArn"]);
                 }
             }
