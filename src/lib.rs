@@ -1,6 +1,6 @@
 #![allow(unused)]
 #![allow(non_snake_case)]
-#![doc = include_str!("../README.md")]
+// #![doc = include_str!("../README.md")]
 
 pub mod config;
 pub mod dependency;
