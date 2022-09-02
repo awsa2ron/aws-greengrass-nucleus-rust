@@ -1,8 +1,7 @@
+#![allow(unused)]
 use anyhow::{Error, Result};
-use aws_config::meta::region::RegionProviderChain;
-use aws_greengrass_nucleus::{config, easysetup, mqtt, provisioning, util};
+use aws_greengrass_nucleus::{config, easysetup};
 use aws_sdk_iot::{Client, PKG_VERSION};
-use aws_types::region::Region;
 use clap::Parser;
 use rumqttc::{self, AsyncClient, Key, MqttOptions, QoS, Transport};
 use serde::{Deserialize, Serialize};
@@ -152,20 +151,20 @@ async fn main() -> Result<(), Error> {
     let endpoint = config::Config::global().endpoint.iot_ats.to_string();
     info!("Endpoint: {}", endpoint);
 
-    let rootDir = Path::new(".");
-    let caFilePath = rootDir.join("rootCA.pem");
-    let privKeyFilePath = rootDir.join("privKey.key");
-    let certFilePath = rootDir.join("thingCert.crt");
+    let root_dir = Path::new(".");
+    let ca_file_path = root_dir.join("rootCA.pem");
+    let priv_key_file_path = root_dir.join("privKey.key");
+    let cert_file_path = root_dir.join("thingCert.crt");
     info!("{:?}", endpoint);
 
     let mut mqtt_options = MqttOptions::new(&thing_name, endpoint, 8883);
     mqtt_options
         .set_keep_alive(Duration::from_secs(30))
         .set_transport(Transport::tls(
-            fs::read(caFilePath)?,
+            fs::read(ca_file_path)?,
             Some((
-                fs::read(certFilePath)?,
-                Key::RSA(fs::read(privKeyFilePath)?),
+                fs::read(cert_file_path)?,
+                Key::RSA(fs::read(priv_key_file_path)?),
             )),
             None,
         ));
