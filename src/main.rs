@@ -1,7 +1,8 @@
 #![allow(unused)]
 use anyhow::{Error, Result};
+use aws_config::meta::region::RegionProviderChain;
 use aws_greengrass_nucleus::{config, easysetup};
-use aws_sdk_iot::{Client, PKG_VERSION};
+use aws_sdk_greengrassv2::{Client, Region};
 use clap::Parser;
 use rumqttc::{self, AsyncClient, Key, MqttOptions, QoS, Transport};
 use serde::{Deserialize, Serialize};
@@ -295,6 +296,33 @@ async fn update(
         .await
         .unwrap();
 
+    seeking().await;
+}
+
+async fn seeking() {
+    let region_provider = RegionProviderChain::first_try(Region::new("ap-southeast-1"))
+        .or_default_provider()
+        .or_else(Region::new("ap-southeast-1"));
+
+    let shared_config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&shared_config);
+
+    let resp = client.list_core_devices().send().await.unwrap();
+
+    println!("cores:");
+
+    for core in resp.core_devices().unwrap() {
+        println!(
+            "  Name:  {}",
+            core.core_device_thing_name().unwrap_or_default()
+        );
+        println!("  Status:  {:?}", core.status().unwrap());
+        println!(
+            "  Last update:  {:?}",
+            core.last_status_update_timestamp().unwrap()
+        );
+        println!();
+    }
 }
 
 #[cfg(test)]
