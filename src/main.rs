@@ -273,7 +273,8 @@ async fn update(
         .await
         .unwrap();
 
-    time::sleep(Duration::from_secs(3)).await;
+    // time::sleep(Duration::from_secs(3)).await;
+    seeking().await;
 
     let payload = json!({
       "shadowName": "AWSManagedGreengrassV2Deployment",
@@ -296,7 +297,6 @@ async fn update(
         .await
         .unwrap();
 
-    seeking().await;
 }
 
 async fn seeking() {
@@ -307,22 +307,12 @@ async fn seeking() {
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&shared_config);
 
-    let resp = client.list_core_devices().send().await.unwrap();
+    // get recipe
+    let resp = client.get_component().send().await.unwrap();
+    // get artifacts
+    let resp = client.get_component_version_artifact().send().await.unwrap();
 
-    println!("cores:");
 
-    for core in resp.core_devices().unwrap() {
-        println!(
-            "  Name:  {}",
-            core.core_device_thing_name().unwrap_or_default()
-        );
-        println!("  Status:  {:?}", core.status().unwrap());
-        println!(
-            "  Last update:  {:?}",
-            core.last_status_update_timestamp().unwrap()
-        );
-        println!();
-    }
 }
 
 #[cfg(test)]
