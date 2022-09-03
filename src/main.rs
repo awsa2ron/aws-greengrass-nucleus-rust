@@ -2,6 +2,7 @@
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_greengrass_nucleus::{config, easysetup};
+use aws_iot_device_sdk::shadow;
 use aws_sdk_greengrassv2::{Client, Region};
 use clap::Parser;
 use rumqttc::{self, AsyncClient, Key, MqttOptions, QoS, Transport};
@@ -198,7 +199,9 @@ async fn main() -> Result<(), Error> {
                 // println!("ID is {:?}", v.pkid);
                 println!("Topic is {:?}", v.topic);
                 // println!("{:#?}", v.payload);
-                if v.topic.rfind("delta") != None {
+
+                let shadow = shadow::match_topic(&v.topic).unwrap();
+                if shadow.shadow_op == shadow::Topic::UpdateDelta{
                     let v: Value = serde_json::from_slice(&v.payload).unwrap();
                     let shadow_version = v["version"].clone();
                     let v = v["state"]["fleetConfig"]
@@ -243,8 +246,14 @@ async fn update(
     version: String,
     status: String,
 ) {
-    let topic =
-        format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/update");
+    // let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/update");
+    let topic = shadow::get_topic(
+        shadow::Topic::Update,
+        &thing_name,
+        Some("AWSManagedGreengrassV2Deployment"),
+    )
+    .unwrap()
+    .to_string();
     println!("{topic}");
 
     let version: u8 = version.parse().unwrap();
@@ -273,7 +282,6 @@ async fn update(
         .await
         .unwrap();
 
-    // time::sleep(Duration::from_secs(3)).await;
     seeking().await;
 
     let payload = json!({
@@ -296,7 +304,6 @@ async fn update(
         .publish(&topic, QoS::AtLeastOnce, false, payload.to_string())
         .await
         .unwrap();
-
 }
 
 async fn seeking() {
@@ -310,9 +317,11 @@ async fn seeking() {
     // get recipe
     let resp = client.get_component().send().await.unwrap();
     // get artifacts
-    let resp = client.get_component_version_artifact().send().await.unwrap();
-
-
+    let resp = client
+        .get_component_version_artifact()
+        .send()
+        .await
+        .unwrap();
 }
 
 #[cfg(test)]
