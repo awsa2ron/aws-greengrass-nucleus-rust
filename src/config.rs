@@ -2,7 +2,7 @@ use once_cell::sync::OnceCell;
 use serde::Deserialize;
 use std::fs;
 
-const CONFIG_FILE: &str = "config.toml";
+const CONFIG_FILE: &str = "config.json";
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
@@ -20,7 +20,7 @@ impl Config {
     fn from_config_file() -> Result<Config, std::io::Error> {
         let config =
             fs::read_to_string(CONFIG_FILE).expect("Something went wrong reading the file");
-        let config: Config = toml::from_str(&config).unwrap();
+        let config: Config = serde_json::from_str(&config).unwrap();
         Ok(config)
     }
 }

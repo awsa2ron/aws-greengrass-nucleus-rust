@@ -307,21 +307,38 @@ async fn update(
 }
 
 async fn seeking() {
-    let region_provider = RegionProviderChain::first_try(Region::new("ap-southeast-1"))
-        .or_default_provider()
-        .or_else(Region::new("ap-southeast-1"));
+    // let region_provider = RegionProviderChain::first_try(Region::new("ap-southeast-1"))
+    //     .or_default_provider()
+    //     .or_else(Region::new("ap-southeast-1"));
 
-    let shared_config = aws_config::from_env().region(region_provider).load().await;
-    let client = Client::new(&shared_config);
+    // let shared_config = aws_config::from_env().region(region_provider).load().await;
+    // let client = Client::new(&shared_config);
 
     // get recipe
-    let resp = client.get_component().send().await.unwrap();
     // get artifacts
-    let resp = client
-        .get_component_version_artifact()
-        .send()
-        .await
-        .unwrap();
+    // let resp = client
+    //     .get_component_version_artifact()
+    //     .send()
+    //     .await
+    //     .unwrap();
+}
+
+// Get a component.
+async fn get_component_recipe(client: &Client, bucket: &str, region: &str) -> Result<(), Error> {
+    // let constraint = BucketLocationConstraint::from(region);
+    // let cfg = CreateBucketConfiguration::builder()
+    //     .location_constraint(constraint)
+    //     .build();
+
+    // client
+    //     .create_bucket()
+    //     .create_bucket_configuration(cfg)
+    //     .bucket(bucket)
+    //     .send()
+    //     .await?;
+    // println!("Created bucket.");
+
+    Ok(())
 }
 
 #[cfg(test)]
