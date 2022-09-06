@@ -1,7 +1,8 @@
-use anyhow::{Error, Result};
-use rumqttc::{self, AsyncClient, Key, MqttOptions, QoS, Transport};
+use crate::config;
+use anyhow::{Error, Ok, Result};
+use rumqttc::{self, AsyncClient, EventLoop, Key, MqttOptions, QoS, Transport};
 
-use std::time::Duration;
+use std::{fs, path::Path, time::Duration};
 use tokio::{task, time};
 
 pub struct PublishRequest {
@@ -52,19 +53,29 @@ pub async fn publish<'a>(
     //         return connection.publish(message, qos, retain);
     //     }
     // });
-    requests(client, message, topic).await;
+    // requests(client, message, topic).await;
 }
 
-async fn requests<'a>(client: AsyncClient, message: Vec<u8>, topic: String) -> Result<(), Error> {
-    // client.subscribe(&topic, QoS::AtMostOnce).await.unwrap();
+pub fn init(name: &str) -> Result<(AsyncClient, EventLoop), Error> {
+    let endpoint = config::Config::global().endpoint.iot_ats.to_string();
+    // info!("Endpoint: {}", endpoint);
 
-    task::spawn(async move {
-        client
-            .publish(topic, QoS::AtLeastOnce, false, message.as_slice())
-            .await
-            .unwrap();
-        time::sleep(Duration::from_millis(100)).await;
-    });
-    time::sleep(Duration::from_secs(1)).await;
-    Ok(())
+    let root_dir = Path::new(".");
+    let ca_file_path = root_dir.join("rootCA.pem");
+    let priv_key_file_path = root_dir.join("privKey.key");
+    let cert_file_path = root_dir.join("thingCert.crt");
+    // info!("{:?}", endpoint);
+
+    let mut mqtt_options = MqttOptions::new(name, endpoint, 8883);
+    mqtt_options
+        .set_keep_alive(Duration::from_secs(30))
+        .set_transport(Transport::tls(
+            fs::read(ca_file_path)?,
+            Some((
+                fs::read(cert_file_path)?,
+                Key::RSA(fs::read(priv_key_file_path)?),
+            )),
+            None,
+        ));
+    Ok(AsyncClient::new(mqtt_options, 10))
 }

@@ -1,7 +1,7 @@
 #![allow(unused)]
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
-use aws_greengrass_nucleus::{config, easysetup};
+use aws_greengrass_nucleus::{config, easysetup, http, mqtt};
 use aws_iot_device_sdk::shadow;
 use aws_sdk_greengrassv2::{Client, Region};
 use clap::Parser;
@@ -148,32 +148,18 @@ async fn main() -> Result<(), Error> {
     } = Args::parse();
 
     tracing_subscriber::fmt::init();
-
     config::init();
-    let endpoint = config::Config::global().endpoint.iot_ats.to_string();
-    info!("Endpoint: {}", endpoint);
-
-    let root_dir = Path::new(".");
-    let ca_file_path = root_dir.join("rootCA.pem");
-    let priv_key_file_path = root_dir.join("privKey.key");
-    let cert_file_path = root_dir.join("thingCert.crt");
-    info!("{:?}", endpoint);
-
-    let mut mqtt_options = MqttOptions::new(&thing_name, endpoint, 8883);
-    mqtt_options
-        .set_keep_alive(Duration::from_secs(30))
-        .set_transport(Transport::tls(
-            fs::read(ca_file_path)?,
-            Some((
-                fs::read(cert_file_path)?,
-                Key::RSA(fs::read(priv_key_file_path)?),
-            )),
-            None,
-        ));
-
-    let (mqtt_client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
-
-    easysetup::perform_setup(&thing_name, &aws_region, provision, &thing_policy_name).await;
+    let (mqtt_client, mut eventloop) = mqtt::init(&thing_name)?;
+    let http_client = http::init(&aws_region).await.unwrap();
+    // easysetup::perform_setup()
+    easysetup::perform_setup(
+        http_client,
+        &thing_name,
+        &aws_region,
+        provision,
+        &thing_policy_name,
+    )
+    .await;
 
     if provision {
         let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
@@ -188,6 +174,10 @@ async fn main() -> Result<(), Error> {
             .unwrap();
     }
 
+    // loop (mqtt events)
+    // match?
+    // spawn
+    // fn process
     let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/#");
     mqtt_client
         .subscribe(&topic, QoS::AtMostOnce)
@@ -248,9 +238,7 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-async fn process() {
-
-}
+async fn process() {}
 
 async fn update(
     client: AsyncClient,

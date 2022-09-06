@@ -19,7 +19,7 @@ async fn main() -> Result<(), Error> {
         None,
     ));
 
-    nucleus::easysetup::performSetup(thing_name, "region", true, "policy").await;
+    nucleus::easysetup::perform_setup(thing_name, "region", true, "policy").await;
 
     let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
     let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
