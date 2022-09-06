@@ -5,6 +5,7 @@ use aws_greengrass_nucleus::{config, easysetup};
 use aws_iot_device_sdk::shadow;
 use aws_sdk_greengrassv2::{Client, Region};
 use clap::Parser;
+use rumqttc::Publish;
 use rumqttc::{self, AsyncClient, Key, MqttOptions, QoS, Transport};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -12,6 +13,7 @@ use serde_json::Value;
 use std::fs;
 use std::path::Path;
 use std::time::Duration;
+use tokio::sync::{mpsc, oneshot};
 use tokio::{task, time};
 use tracing::{debug, event, info, span, Level};
 use tracing_subscriber;
@@ -147,8 +149,6 @@ async fn main() -> Result<(), Error> {
 
     tracing_subscriber::fmt::init();
 
-    easysetup::performSetup(&thing_name, &aws_region, provision, &thing_policy_name).await;
-
     config::init();
     let endpoint = config::Config::global().endpoint.iot_ats.to_string();
     info!("Endpoint: {}", endpoint);
@@ -171,7 +171,9 @@ async fn main() -> Result<(), Error> {
             None,
         ));
 
-    let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
+    let (mqtt_client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
+
+    easysetup::perform_setup(&thing_name, &aws_region, provision, &thing_policy_name).await;
 
     if provision {
         let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
@@ -180,55 +182,62 @@ async fn main() -> Result<(), Error> {
         ))
         .to_string();
         info!("Send {payload} to {topic}");
-        client
+        mqtt_client
             .publish(topic, QoS::AtLeastOnce, false, payload)
             .await
             .unwrap();
     }
 
     let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/#");
-    client.subscribe(&topic, QoS::AtMostOnce).await.unwrap();
+    mqtt_client
+        .subscribe(&topic, QoS::AtMostOnce)
+        .await
+        .unwrap();
 
-    while let Ok(notification) = eventloop.poll().await {
+    let (tx, mut rx) = mpsc::channel::<Publish>(32);
+
+    let shadow_deployment = tokio::spawn(async move {
+        if let Some(v) = rx.recv().await {
+            let shadow = shadow::match_topic(&v.topic).unwrap();
+            if shadow.shadow_op == shadow::Topic::UpdateDelta {
+                let v: Value = serde_json::from_slice(&v.payload).unwrap();
+                let shadow_version = v["version"].clone();
+                let v = v["state"]["fleetConfig"]
+                    .to_string()
+                    .replace("\\", "")
+                    .trim_matches('"')
+                    .to_string();
+                let v: Value = serde_json::from_str(&v).unwrap();
+                println!("{}", v["configurationArn"]);
+                let configuration_arn = v["configurationArn"]
+                    .to_string()
+                    .trim_matches('"')
+                    .to_string();
+                if let Some((arn, version)) = configuration_arn.rsplit_once(':') {
+                    mqtt_client.unsubscribe(&topic).await.unwrap();
+                    time::sleep(Duration::from_secs(3)).await;
+                    println!("{arn}|{version}");
+                    let c = mqtt_client.clone();
+                    let n = thing_name.clone();
+                    let a = configuration_arn.clone();
+                    let v = shadow_version.to_string();
+                    let s = "IN_PROGRESS".to_string();
+                    task::spawn(async move {
+                        update(c, n, a, v, s).await;
+                        // time::sleep(Duration::from_secs(3)).await;
+                    });
+                }
+            }
+        }
+    });
+
+    loop {
+        let notification = eventloop.poll().await.unwrap();
         println!("Received = {:?}", notification);
         match notification {
             rumqttc::Event::Incoming(rumqttc::Packet::Publish(v)) => {
-                // println!("{:?}", v.dup);
-                println!("QoS is {:?}", v.qos);
-                println!("Retain is {:?}", v.retain);
-                // println!("ID is {:?}", v.pkid);
-                println!("Topic is {:?}", v.topic);
-                // println!("{:#?}", v.payload);
-
-                let shadow = shadow::match_topic(&v.topic).unwrap();
-                if shadow.shadow_op == shadow::Topic::UpdateDelta{
-                    let v: Value = serde_json::from_slice(&v.payload).unwrap();
-                    let shadow_version = v["version"].clone();
-                    let v = v["state"]["fleetConfig"]
-                        .to_string()
-                        .replace("\\", "")
-                        .trim_matches('"')
-                        .to_string();
-                    let v: Value = serde_json::from_str(&v).unwrap();
-                    println!("{}", v["configurationArn"]);
-                    let configuration_arn = v["configurationArn"]
-                        .to_string()
-                        .trim_matches('"')
-                        .to_string();
-                    if let Some((arn, version)) = configuration_arn.rsplit_once(':') {
-                        client.unsubscribe(&topic).await.unwrap();
-                        time::sleep(Duration::from_secs(3)).await;
-                        println!("{arn}|{version}");
-                        let c = client.clone();
-                        let n = thing_name.clone();
-                        let a = configuration_arn.clone();
-                        let v = shadow_version.to_string();
-                        let s = "IN_PROGRESS".to_string();
-                        task::spawn(async move {
-                            update(c, n, a, v, s).await;
-                            // time::sleep(Duration::from_secs(3)).await;
-                        });
-                    }
+                if let Err(_) = tx.clone().send(v).await {
+                    println!("the receiver dropped");
                 }
             }
             rumqttc::Event::Incoming(_) => {}
@@ -237,6 +246,10 @@ async fn main() -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+async fn process() {
+
 }
 
 async fn update(
