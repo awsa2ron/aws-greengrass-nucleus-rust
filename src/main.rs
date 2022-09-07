@@ -4,24 +4,23 @@ use aws_config::meta::region::RegionProviderChain;
 use aws_greengrass_nucleus::services::deployment;
 use aws_greengrass_nucleus::{config, easysetup, http, mqtt, Args};
 use aws_iot_device_sdk::shadow;
+use aws_iot_device_sdk::shadow::ThingShadow;
 use aws_sdk_greengrassv2::{Client, Region};
 use clap::Parser;
 use rumqttc::Publish;
-use rumqttc::{self, AsyncClient, Key, MqttOptions, QoS, Transport};
+use rumqttc::{self, AsyncClient, Event, Key, MqttOptions, Packet, QoS, Transport};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
 use std::fs;
 use std::path::Path;
 use std::time::Duration;
+use tokio::sync::mpsc::Sender;
 use tokio::sync::{mpsc, oneshot};
 use tokio::{task, time};
 use tracing::{debug, event, info, span, Level};
 use tracing_subscriber;
 
-// Simple program to greet a person
-// #[tokio::main]
-// #[cfg(feature = "use-rustls")]
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let args = Args::parse();
@@ -30,15 +29,23 @@ async fn main() -> Result<(), Error> {
     config::init();
     let (mqtt_client, mut eventloop) = mqtt::init(&args.thing_name)?;
     let http_client = http::init(&args.aws_region).await.unwrap();
-    // easysetup::perform_setup()
     easysetup::perform_setup(http_client, mqtt_client.clone(), &args).await;
-
     deployment::connect_shadow(mqtt_client.clone(), &args.thing_name).await;
 
-    let (tx, mut rx) = mpsc::channel::<Publish>(32);
+    let (tx, mut rx) = mpsc::channel::<String>(128);
+    loop {
+        tokio::select! {
+            Ok(event) = eventloop.poll() => { process(event, tx.clone()).await; }
+            Some(msg) = rx.recv() => { println!("{msg}"); }
+        }
+    }
+    Ok(())
+}
 
-    let shadow_deployment = tokio::spawn(async move {
-        if let Some(v) = rx.recv().await {
+async fn process(e: Event, tx: Sender<String>) {
+    println!("{:?}", e);
+    match e {
+        rumqttc::Event::Incoming(rumqttc::Packet::Publish(v)) => {
             let shadow = shadow::match_topic(&v.topic).unwrap();
             if shadow.shadow_op == shadow::Topic::UpdateDelta {
                 let v: Value = serde_json::from_slice(&v.payload).unwrap();
@@ -55,46 +62,27 @@ async fn main() -> Result<(), Error> {
                     .trim_matches('"')
                     .to_string();
                 if let Some((arn, version)) = configuration_arn.rsplit_once(':') {
-                    // mqtt_client.unsubscribe(&topic).await.unwrap();
-                    time::sleep(Duration::from_secs(3)).await;
+                    tx.send("How are you?".to_string()).await;
+                    // time::sleep(Duration::from_secs(3)).await;
                     println!("{arn}|{version}");
-                    let c = mqtt_client.clone();
-                    let n = args.thing_name.clone();
-                    let a = configuration_arn.clone();
-                    let v = shadow_version.to_string();
-                    let s = "IN_PROGRESS".to_string();
-                    task::spawn(async move {
-                        update(c, n, a, v, s).await;
-                        // time::sleep(Duration::from_secs(3)).await;
-                    });
+                    // let c = mqtt_client.clone();
+                    // let n = args.thing_name.clone();
+                    // let a = configuration_arn.clone();
+                    // let v = shadow_version.to_string();
+                    // let s = "IN_PROGRESS".to_string();
+                    // task::spawn(async move {
+                    //     update(c, n, a, v, s).await;
+                    //     // time::sleep(Duration::from_secs(3)).await;
+                    // });
                 }
             }
         }
-    });
-
-    // loop (mqtt events)
-    // match?
-    // spawn
-    // fn process
-
-    loop {
-        let notification = eventloop.poll().await.unwrap();
-        println!("Received = {:?}", notification);
-        match notification {
-            rumqttc::Event::Incoming(rumqttc::Packet::Publish(v)) => {
-                if let Err(_) = tx.clone().send(v).await {
-                    println!("the receiver dropped");
-                }
-            }
-            rumqttc::Event::Incoming(_) => {}
-            rumqttc::Event::Outgoing(_) => {}
-        }
+        rumqttc::Event::Incoming(_) => {}
+        rumqttc::Event::Outgoing(_) => {} // if let Some(v) = rx.recv().await {
     }
 
-    Ok(())
+    // }
 }
-
-async fn process() {}
 
 async fn update(
     client: AsyncClient,

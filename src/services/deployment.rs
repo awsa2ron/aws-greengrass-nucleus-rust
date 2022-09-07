@@ -33,3 +33,8 @@ pub async fn connect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
         .await
         .unwrap();
 }
+
+pub async fn disconnect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
+    let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/#");
+    mqtt_client.unsubscribe(&topic).await.unwrap();
+}
