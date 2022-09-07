@@ -26,11 +26,7 @@ impl Service for Deployments {
     }
 }
 
-pub async fn connect_shadow(
-    mqtt_client: AsyncClient,
-    thing_name: &str,
-
-) {    
+pub async fn connect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
     let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/#");
     mqtt_client
         .subscribe(&topic, QoS::AtMostOnce)

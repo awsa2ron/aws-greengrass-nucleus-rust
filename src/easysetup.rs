@@ -3,7 +3,7 @@
 //! with the customer's provided config if desired, optionally provision the test device as an AWS IoT Thing, create and
 //! attach policies and certificates to it, create TES role and role alias or uses existing ones and attaches
 //! them to the IoT thing certificate.
-use crate::services;
+use crate::{services, Args};
 
 use super::provisioning;
 use anyhow::{Error, Result};
@@ -101,19 +101,12 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn perform_setup(
-    client: Client,
-    mqtt_client: AsyncClient,
-    name: &str,
-    region: &str,
-    need_provisioning: bool,
-    thing_policy_name: &str,
-) {
-    if need_provisioning {
-        provision(client, name, thing_policy_name).await;
+pub async fn perform_setup(client: Client, mqtt_client: AsyncClient, args: &Args) {
+    if args.provision {
+        provision(client, &args.thing_name, &args.thing_policy_name).await;
 
-        let topic = format!("$aws/things/{name}/greengrassv2/health/json");
-        let payload = json!(services::status::upload_fss_data(&name)).to_string();
+        let topic = format!("$aws/things/{}/greengrassv2/health/json", &args.thing_name);
+        let payload = json!(services::status::upload_fss_data(&args.thing_name)).to_string();
         info!("Send {payload} to {topic}");
         mqtt_client
             .publish(topic, QoS::AtLeastOnce, false, payload)
