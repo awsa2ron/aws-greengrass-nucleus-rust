@@ -1,6 +1,7 @@
 #![allow(unused)]
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
+use aws_greengrass_nucleus::services::deployment;
 use aws_greengrass_nucleus::{config, easysetup, http, mqtt};
 use aws_iot_device_sdk::shadow;
 use aws_sdk_greengrassv2::{Client, Region};
@@ -162,15 +163,7 @@ async fn main() -> Result<(), Error> {
     )
     .await;
 
-    // loop (mqtt events)
-    // match?
-    // spawn
-    // fn process
-    let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/#");
-    mqtt_client
-        .subscribe(&topic, QoS::AtMostOnce)
-        .await
-        .unwrap();
+    deployment::connect_shadow(mqtt_client.clone(), &thing_name).await;
 
     let (tx, mut rx) = mpsc::channel::<Publish>(32);
 
@@ -192,7 +185,7 @@ async fn main() -> Result<(), Error> {
                     .trim_matches('"')
                     .to_string();
                 if let Some((arn, version)) = configuration_arn.rsplit_once(':') {
-                    mqtt_client.unsubscribe(&topic).await.unwrap();
+                    // mqtt_client.unsubscribe(&topic).await.unwrap();
                     time::sleep(Duration::from_secs(3)).await;
                     println!("{arn}|{version}");
                     let c = mqtt_client.clone();
@@ -208,6 +201,11 @@ async fn main() -> Result<(), Error> {
             }
         }
     });
+
+    // loop (mqtt events)
+    // match?
+    // spawn
+    // fn process
 
     loop {
         let notification = eventloop.poll().await.unwrap();
