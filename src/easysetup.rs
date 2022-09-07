@@ -10,6 +10,8 @@ use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_iot::{model::KeyPair, Client};
 use aws_types::region::Region;
+use rumqttc::{AsyncClient, QoS};
+use serde_json::json;
 use std::fs;
 use std::path::Path;
 use tracing::{debug, event, info, span, Level};
@@ -101,6 +103,7 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
 
 pub async fn perform_setup(
     client: Client,
+    mqtt_client: AsyncClient,
     name: &str,
     region: &str,
     need_provisioning: bool,
@@ -108,8 +111,15 @@ pub async fn perform_setup(
 ) {
     if need_provisioning {
         provision(client, name, thing_policy_name).await;
-    }
 
+        let topic = format!("$aws/things/{name}/greengrassv2/health/json");
+        let payload = json!(services::status::upload_fss_data(&name)).to_string();
+        info!("Send {payload} to {topic}");
+        mqtt_client
+            .publish(topic, QoS::AtLeastOnce, false, payload)
+            .await
+            .unwrap();
+    }
     info!("Launching Nucleus...");
     services::start_services();
     info!("Launched Nucleus successfully.");

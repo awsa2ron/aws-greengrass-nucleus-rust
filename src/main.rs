@@ -154,25 +154,13 @@ async fn main() -> Result<(), Error> {
     // easysetup::perform_setup()
     easysetup::perform_setup(
         http_client,
+        mqtt_client.clone(),
         &thing_name,
         &aws_region,
         provision,
         &thing_policy_name,
     )
     .await;
-
-    if provision {
-        let topic = format!("$aws/things/{thing_name}/greengrassv2/health/json");
-        let payload = json!(aws_greengrass_nucleus::services::status::upload_fss_data(
-            &thing_name
-        ))
-        .to_string();
-        info!("Send {payload} to {topic}");
-        mqtt_client
-            .publish(topic, QoS::AtLeastOnce, false, payload)
-            .await
-            .unwrap();
-    }
 
     // loop (mqtt events)
     // match?
