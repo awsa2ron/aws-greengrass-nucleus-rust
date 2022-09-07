@@ -131,39 +131,24 @@ struct Args {
 // #[cfg(feature = "use-rustls")]
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let Args {
-        aws_region,
-        root,
-        init_config,
-        provision,
-        thing_name,
-        thing_group_name,
-        thing_policy_name,
-        tes_role_name,
-        tes_role_alias_name,
-        setup_system_service,
-        component_default_user,
-        deploy_dev_tools,
-        start,
-        trusted_plugin,
-    } = Args::parse();
+    let args = Args::parse();
 
     tracing_subscriber::fmt::init();
     config::init();
-    let (mqtt_client, mut eventloop) = mqtt::init(&thing_name)?;
-    let http_client = http::init(&aws_region).await.unwrap();
+    let (mqtt_client, mut eventloop) = mqtt::init(&args.thing_name)?;
+    let http_client = http::init(&args.aws_region).await.unwrap();
     // easysetup::perform_setup()
     easysetup::perform_setup(
         http_client,
         mqtt_client.clone(),
-        &thing_name,
-        &aws_region,
-        provision,
-        &thing_policy_name,
+        &args.thing_name,
+        &args.aws_region,
+        args.provision,
+        &args.thing_policy_name,
     )
     .await;
 
-    deployment::connect_shadow(mqtt_client.clone(), &thing_name).await;
+    deployment::connect_shadow(mqtt_client.clone(), &args.thing_name).await;
 
     let (tx, mut rx) = mpsc::channel::<Publish>(32);
 
@@ -189,7 +174,7 @@ async fn main() -> Result<(), Error> {
                     time::sleep(Duration::from_secs(3)).await;
                     println!("{arn}|{version}");
                     let c = mqtt_client.clone();
-                    let n = thing_name.clone();
+                    let n = args.thing_name.clone();
                     let a = configuration_arn.clone();
                     let v = shadow_version.to_string();
                     let s = "IN_PROGRESS".to_string();
