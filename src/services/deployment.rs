@@ -36,30 +36,32 @@ impl Service for Deployments {
     }
 }
 
-// pub static STATUS: Lazy<DashMap<String, ServiceStatus>> = Lazy::new(|| DashMap::new());
-
 // enum DeployStates {
 //     Deployment,
-//     InProgress,
-//     Succeed
+//     inprogress,
+//     succeed
 // }
 struct DeployStates {
     mutex: Mutex<i32>,
 }
+
 impl DeployStates {
     fn new(&self) {
         let mut lock = self.mutex.lock().unwrap();
         *lock = 0;
     }
-    fn get(&self) {
+    fn get_or_init(&self) -> i32 {
         let lock = self.mutex.lock().unwrap();
-        *lock;
+        *lock
     }
     fn increment(&self) {
         let mut lock = self.mutex.lock().unwrap();
         *lock += 1;
     }
 }
+static DEPLOYSTATUS: DeployStates = DeployStates {
+    mutex: Mutex::new(0),
+};
 
 pub struct Deployment {
     content: String,
@@ -74,7 +76,6 @@ impl Deployment {
     pub fn content(&self) -> &str {
         &self.content
     }
-
 }
 
 pub struct InProgress {
@@ -102,9 +103,6 @@ impl Succeed {
         }
     }
 }
-
-
-
 
 pub async fn connect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
     let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/#");
@@ -220,6 +218,9 @@ async fn get_component_recipe(client: &Client, bucket: &str, region: &str) { //}
 }
 
 pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
+    DEPLOYSTATUS.increment();
+    println!("const status is: {}", DEPLOYSTATUS.get_or_init());
+
     let v: Value = serde_json::from_slice(&v.payload).unwrap();
     // version
     let shadow_version = v["version"].clone();
