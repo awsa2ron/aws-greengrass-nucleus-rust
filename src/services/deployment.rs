@@ -1,6 +1,9 @@
+use std::sync::Mutex;
+
 use anyhow::{Error, Result};
 use aws_iot_device_sdk::shadow;
 use aws_sdk_greengrassv2::{Client, Region};
+use once_cell::sync::Lazy;
 use rumqttc::Publish;
 use rumqttc::{AsyncClient, QoS};
 use serde_json::json;
@@ -33,94 +36,37 @@ impl Service for Deployments {
     }
 }
 
-// pub struct Deployment {
-//     state: Option<Box<dyn State>>,
-//     content: String,
+// pub static STATUS: Lazy<DashMap<String, ServiceStatus>> = Lazy::new(|| DashMap::new());
+
+// enum DeployStates {
+//     Deployment,
+//     InProgress,
+//     Succeed
 // }
-
-// impl Deployment {
-//     pub fn new() -> Deployment {
-//         Deployment {
-//             state: Some(Box::new(Draft {})),
-//             content: String::new(),
-//         }
-//     }
-//     pub fn add_text(&mut self, text: &str) {
-//         self.content.push_str(text);
-//     }
-//     pub fn content(&self) -> &str {
-//         self.state.as_ref().unwrap().content(self)
-//     }
-//     pub fn request_review(&mut self) {
-//         if let Some(s) = self.state.take() {
-//             self.state = Some(s.request_review())
-//         }
-//     }
-//     pub fn approve(&mut self) {
-//         if let Some(s) = self.state.take() {
-//             self.state = Some(s.approve())
-//         }
-//     }
-// }
-
-// trait State {
-//     fn request_review(self: Box<Self>) -> Box<dyn State>;
-//     fn approve(self: Box<Self>) -> Box<dyn State>;
-//     fn content<'a>(&self, post: &'a Deployment) -> &'a str {
-//         ""
-//     }
-// }
-
-// struct Draft {}
-
-// impl State for Draft {
-//     fn request_review(self: Box<Self>) -> Box<dyn State> {
-//         Box::new(PendingReview {})
-//     }
-//     fn approve(self: Box<Self>) -> Box<dyn State> {
-//         self
-//     }
-// }
-// struct PendingReview {}
-
-// impl State for PendingReview {
-//     fn request_review(self: Box<Self>) -> Box<dyn State> {
-//         self
-//     }
-//     fn approve(self: Box<Self>) -> Box<dyn State> {
-//         Box::new(Published {})
-//     }
-// }
-// struct Published {}
-
-// impl State for Published {
-//     fn request_review(self: Box<Self>) -> Box<dyn State> {
-//         self
-//     }
-
-//     fn approve(self: Box<Self>) -> Box<dyn State> {
-//         self
-//     }
-//     fn content<'a>(&self, post: &'a Deployment) -> &'a str {
-//         &post.content
-//     }
-// }
-
-pub struct Post {
-    content: String,
+struct DeployStates {
+    mutex: Mutex<i32>,
+}
+impl DeployStates {
+    fn new(&self) {
+        let mut lock = self.mutex.lock().unwrap();
+        *lock = 0;
+    }
+    fn get(&self) {
+        let lock = self.mutex.lock().unwrap();
+        *lock;
+    }
+    fn increment(&self) {
+        let mut lock = self.mutex.lock().unwrap();
+        *lock += 1;
+    }
 }
 
-pub struct DraftPost {
+pub struct Deployment {
     content: String,
 }
-
-pub struct PendingReviewPost {
-    content: String,
-}
-
-impl Post {
-    pub fn new() -> DraftPost {
-        DraftPost {
+impl Deployment {
+    pub fn new() -> InProgress {
+        InProgress {
             content: String::new(),
         }
     }
@@ -128,22 +74,31 @@ impl Post {
     pub fn content(&self) -> &str {
         &self.content
     }
+
 }
 
-impl DraftPost {
+pub struct InProgress {
+    content: String,
+}
+impl InProgress {
     pub fn add_text(&mut self, text: &str) {
         self.content.push_str(text);
     }
-    pub fn request_review(self) -> PendingReviewPost {
-        PendingReviewPost {
+    pub fn request_review(self) -> Succeed {
+        Succeed {
             content: self.content,
         }
     }
 }
-impl PendingReviewPost {
-    pub fn approve(self) -> Post {
-        Post {
+
+pub struct Succeed {
+    content: String,
+}
+impl Succeed {
+    pub fn approve(self) -> Deployment {
+        Deployment {
             content: self.content,
+            // mutex: Mutex::new(0),
         }
     }
 }
