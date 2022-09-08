@@ -1,10 +1,8 @@
 use anyhow::{Error, Result};
-use aws_greengrass_nucleus::services::deployment;
-use aws_greengrass_nucleus::{config, easysetup, http, mqtt, Args};
+use aws_greengrass_nucleus::{config, easysetup, http, mqtt, Args, services::deployment};
 use aws_iot_device_sdk::shadow;
 use clap::Parser;
-use rumqttc::{self, Event, Packet};
-use tokio::sync::mpsc::Sender;
+use rumqttc::{self, Event, Packet, Publish};
 use tokio::sync::mpsc;
 use tracing_subscriber;
 
@@ -19,28 +17,28 @@ async fn main() -> Result<(), Error> {
     easysetup::perform_setup(http_client, mqtt_client.clone(), &args).await;
     deployment::connect_shadow(mqtt_client.clone(), &args.thing_name).await;
 
-    let (tx, mut rx) = mpsc::channel::<String>(128);
+    let (tx, mut rx) = mpsc::channel(128);
     loop {
         tokio::select! {
             Ok(event) = eventloop.poll() => { process(event, tx.clone()).await; }
-            Some(msg) = rx.recv() => { println!("{msg}"); }
+            Some(msg) = rx.recv() => { println!("channel receive {:?}", msg); }
         }
     }
 }
 
-async fn process(e: Event, tx: Sender<String>) {
-    println!("{:?}", e);
-    match e {
-        Event::Incoming(Packet::Publish(v)) => {
-            if let Ok(shadow) = shadow::match_topic(&v.topic) {
-                match shadow.shadow_op {
-                    shadow::Topic::UpdateDelta => {}
-                    _ => {}
+async fn process(event: Event, tx: mpsc::Sender<Publish>) {
+    println!("{:?}", event);
+    if let Event::Incoming(Packet::Publish(v)) = event {
+        if let Ok(shadow) = shadow::match_topic(&v.topic) {
+            match shadow.shadow_op {
+                shadow::Topic::UpdateDelta => {
+                    tokio::spawn(async move {
+                        deployment::resp_shadow_delta(v, tx).await;
+                    });
                 }
+                _ => {}
             }
         }
-        rumqttc::Event::Incoming(_) => {}
-        rumqttc::Event::Outgoing(_) => {} // if let Some(v) = rx.recv().await {
     }
 }
 
