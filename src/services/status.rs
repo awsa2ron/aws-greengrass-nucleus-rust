@@ -212,3 +212,11 @@ pub fn upload_fss_data(
 
     // serde_string
 }
+
+#[doc(alias = "deploymentStatusChanged")]
+pub fn deployment_status_changed(
+    name: &str, // overAllStatus: OverallStatus,
+                // deploymentInformation: DeploymentInformation,
+) -> bool {
+    true
+}

@@ -48,7 +48,7 @@ pub async fn disconnect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
 
 async fn update_in_progress(client: AsyncClient, thing_name: String, arn: String, version: String) {
     // let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/update");
-    let topic = shadow::get_topic(
+    let topic = shadow::assemble_topic(
         shadow::Topic::Update,
         &thing_name,
         Some("AWSManagedGreengrassV2Deployment"),
@@ -81,7 +81,7 @@ async fn update_in_progress(client: AsyncClient, thing_name: String, arn: String
 }
 
 async fn update_secceeded(client: AsyncClient, thing_name: String, arn: String, version: String) {
-    let topic = shadow::get_topic(
+    let topic = shadow::assemble_topic(
         shadow::Topic::Update,
         &thing_name,
         Some("AWSManagedGreengrassV2Deployment"),

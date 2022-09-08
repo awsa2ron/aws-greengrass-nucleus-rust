@@ -1,6 +1,6 @@
 use anyhow::{Error, Result};
-use aws_greengrass_nucleus::{config, easysetup, http, mqtt, Args, services::deployment};
-use aws_iot_device_sdk::shadow;
+use aws_greengrass_nucleus::{config, easysetup, http, mqtt, services::deployment, Args};
+use aws_iot_device_sdk::{jobs, shadow, *};
 use clap::Parser;
 use rumqttc::{self, Event, Packet, Publish};
 use tokio::sync::mpsc;
@@ -29,15 +29,16 @@ async fn main() -> Result<(), Error> {
 async fn process(event: Event, tx: mpsc::Sender<Publish>) {
     println!("{:?}", event);
     if let Event::Incoming(Packet::Publish(v)) = event {
-        if let Ok(shadow) = shadow::match_topic(&v.topic) {
-            match shadow.shadow_op {
-                shadow::Topic::UpdateDelta => {
+        match match_topic_type(&v.topic) {
+            Ok(TopicType::NamedShadow) => {
+                if shadow::match_topic(&v.topic).unwrap().shadow_op == shadow::Topic::UpdateDelta {
                     tokio::spawn(async move {
                         deployment::resp_shadow_delta(v, tx).await;
                     });
                 }
-                _ => {}
             }
+            Ok(TopicType::Jobs) => {}
+            _ => {}
         }
     }
 }
