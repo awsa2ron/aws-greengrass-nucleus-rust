@@ -1,15 +1,17 @@
 use std::sync::Mutex;
+use std::time::Duration;
 
 use anyhow::{Error, Result};
 use aws_iot_device_sdk::shadow;
 use aws_sdk_greengrassv2::{Client, Region};
+use bytes::Bytes;
 use once_cell::sync::Lazy;
 use rumqttc::Publish;
 use rumqttc::{AsyncClient, QoS};
 use serde_json::json;
 use serde_json::Value;
 use tokio::sync::mpsc::Sender;
-use bytes::Bytes;
+use tokio::time;
 
 use crate::services::{Service, SERVICES};
 
@@ -110,8 +112,10 @@ impl Succeed {
     }
 }
 
+/// Todo: fix bug in aws-iot-device-sdk-rust
+/// Match shadow topic without suffix.
 pub async fn connect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
-    let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/#");
+    let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/update/#");
     mqtt_client
         .subscribe(&topic, QoS::AtMostOnce)
         .await
@@ -119,7 +123,7 @@ pub async fn connect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
 }
 
 pub async fn disconnect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
-    let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/#");
+    let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/update/#");
     mqtt_client.unsubscribe(&topic).await.unwrap();
 }
 
@@ -153,7 +157,7 @@ fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> V
               "status": "SUCCEEDED"
             }
           },
-          "version": version + 1
+          "version": version
         })
     }
 }
@@ -197,7 +201,7 @@ pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
 
     let v: Value = serde_json::from_slice(&v.payload).unwrap();
     // version
-    let shadow_version = v["version"].clone();
+    let shadow_version = v["version"].clone().to_string();
     // ["state"]["fleetConfig"]
     let v = v["state"]["fleetConfig"]
         .to_string()
@@ -213,36 +217,39 @@ pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
         .to_string();
     let (arn, version) = configuration_arn.rsplit_once(':').unwrap();
     let (_, thing_name) = arn.rsplit_once('/').unwrap();
-    let payload = assemble_payload(thing_name, arn, version, true).to_string();
     let topic = shadow::assemble_topic(
         shadow::Topic::Update,
         thing_name,
         Some("AWSManagedGreengrassV2Deployment"),
     )
     .unwrap();
-    let value = Publish {
-        dup: false,
-        qos: QoS::AtMostOnce,
-        retain: false,
-        pkid: 0,
-        topic: topic.to_string(),
-        payload: Bytes::from(payload),
-    };
-    tx.send(value).await;
-    // time::sleep(Duration::from_secs(3)).await;
-    // println!("{arn}|{version}");
-    // let c = mqtt_client.clone();
-    // let n = args.thing_name.clone();
-    // let a = configuration_arn.clone();
-    // let v = shadow_version.to_string();
-    // let s = "IN_PROGRESS".to_string();
-    // task::spawn(async move {
-    //     update(c, n, a, v, s).await;
-    //     // time::sleep(Duration::from_secs(3)).await;
-    // });
+
     match DEPLOYSTATUS.get() {
-        States::Deployment => {}
-        States::Inprogress => {}
+        States::Deployment => {
+            let payload = assemble_payload(thing_name, &configuration_arn, &shadow_version, true).to_string();
+            let value = Publish {
+                dup: false,
+                qos: QoS::AtMostOnce,
+                retain: false,
+                pkid: 0,
+                topic: topic.to_string(),
+                payload: Bytes::from(payload),
+            };
+            tx.send(value).await;
+        }
+        States::Inprogress => {
+            let payload = assemble_payload(thing_name, &configuration_arn, &shadow_version, false).to_string();
+            let value = Publish {
+                dup: false,
+                qos: QoS::AtMostOnce,
+                retain: false,
+                pkid: 0,
+                topic: topic.to_string(),
+                payload: Bytes::from(payload),
+            };
+            time::sleep(Duration::from_secs(3)).await;
+            tx.send(value).await;
+        }
         States::Succeed => {}
     }
     DEPLOYSTATUS.next();

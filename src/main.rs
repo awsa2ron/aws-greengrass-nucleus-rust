@@ -1,6 +1,6 @@
 use anyhow::{Error, Result};
 use aws_greengrass_nucleus::{config, easysetup, http, mqtt, services::deployment, Args};
-use aws_iot_device_sdk::{jobs, shadow, *};
+use aws_iot_device_sdk::{shadow, *};
 use clap::Parser;
 use rumqttc::{self, Event, Packet, Publish};
 use tokio::sync::mpsc;
@@ -21,7 +21,13 @@ async fn main() -> Result<(), Error> {
     loop {
         tokio::select! {
             Ok(event) = eventloop.poll() => { process(event, tx.clone()).await; }
-            Some(msg) = rx.recv() => { println!("channel receive {:?}", msg); }
+            Some(msg) = rx.recv() => {
+                let mqtt_client = mqtt_client.clone();
+                    tokio::spawn(async move {
+                println!("channel receive {:?}", msg);
+                    mqtt_client.publish(msg.topic, msg.qos, false, msg.payload).await.unwrap();
+                    });
+            }
         }
     }
 }
