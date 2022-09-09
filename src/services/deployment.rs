@@ -29,7 +29,7 @@ pub const DEVICE_OFFLINE_MESSAGE: &str = "Device not configured to talk to AWS I
 // + "Single device deployment is offline";
 pub const SUBSCRIBING_TO_SHADOW_TOPICS_MESSAGE: &str = "Subscribing to Iot Shadow topics";
 
-const VERSION: &str = "0.0.0";
+const VERSION: &str = "2.5.6";
 const NAME: &str = "DeploymentService";
 pub struct Deployments {}
 
@@ -38,6 +38,10 @@ impl Service for Deployments {
         SERVICES.insert(NAME.into(), Self::new(NAME, VERSION));
     }
 }
+
+static DEPLOYSTATUS: DeployStates = DeployStates {
+    mutex: Mutex::new(States::Deployment),
+};
 
 #[derive(Debug, Copy, Clone)]
 enum States {
@@ -48,7 +52,6 @@ enum States {
 struct DeployStates {
     mutex: Mutex<States>,
 }
-
 impl DeployStates {
     fn get(&self) -> States {
         let lock = self.mutex.lock().unwrap();
@@ -67,55 +70,11 @@ impl DeployStates {
         }
     }
 }
-static DEPLOYSTATUS: DeployStates = DeployStates {
-    mutex: Mutex::new(States::Deployment),
-};
-
-pub struct Deployment {
-    content: String,
-}
-impl Deployment {
-    pub fn new() -> InProgress {
-        InProgress {
-            content: String::new(),
-        }
-    }
-
-    pub fn content(&self) -> &str {
-        &self.content
-    }
-}
-
-pub struct InProgress {
-    content: String,
-}
-impl InProgress {
-    pub fn add_text(&mut self, text: &str) {
-        self.content.push_str(text);
-    }
-    pub fn request_review(self) -> Succeed {
-        Succeed {
-            content: self.content,
-        }
-    }
-}
-
-pub struct Succeed {
-    content: String,
-}
-impl Succeed {
-    pub fn approve(self) -> Deployment {
-        Deployment {
-            content: self.content,
-            // mutex: Mutex::new(0),
-        }
-    }
-}
 
 /// Todo: fix bug in aws-iot-device-sdk-rust
 /// Match shadow topic without suffix.
-pub async fn connect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
-    let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/update/#");
+pub async fn connect_shadow(mqtt_client: &AsyncClient, thing_name: &str) {
+    let topic = format!("$aws/things/{thing_name}/shadow/name/{DEPLOYMENT_SHADOW_NAME}/update/#");
     mqtt_client
         .subscribe(&topic, QoS::AtMostOnce)
         .await
@@ -123,7 +82,7 @@ pub async fn connect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
 }
 
 pub async fn disconnect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
-    let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/update/#");
+    let topic = format!("$aws/things/{thing_name}/shadow/name/{DEPLOYMENT_SHADOW_NAME}/update/#");
     mqtt_client.unsubscribe(&topic).await.unwrap();
 }
 
@@ -131,11 +90,11 @@ fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> V
     let version: u8 = version.parse().unwrap();
     if next {
         json!({
-          "shadowName": "AWSManagedGreengrassV2Deployment",
+          "shadowName": DEPLOYMENT_SHADOW_NAME,
           "thingName": thing_name,
           "state": {
             "reported": {
-              "ggcVersion": "2.5.6",
+              "ggcVersion": VERSION,
               "fleetConfigurationArnForStatus": arn,
               "statusDetails": {},
               "status": "IN_PROGRESS"
@@ -145,11 +104,11 @@ fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> V
         })
     } else {
         json!({
-          "shadowName": "AWSManagedGreengrassV2Deployment",
+          "shadowName": DEPLOYMENT_SHADOW_NAME,
           "thingName": thing_name,
           "state": {
             "reported": {
-              "ggcVersion": "2.5.6",
+              "ggcVersion": VERSION,
               "fleetConfigurationArnForStatus": arn,
               "statusDetails": {
                     "detailedStatus": "SUCCESSFUL"
@@ -160,40 +119,6 @@ fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> V
           "version": version
         })
     }
-}
-async fn seeking() {
-    // let region_provider = RegionProviderChain::first_try(Region::new("ap-southeast-1"))
-    //     .or_default_provider()
-    //     .or_else(Region::new("ap-southeast-1"));
-
-    // let shared_config = aws_config::from_env().region(region_provider).load().await;
-    // let client = Client::new(&shared_config);
-
-    // get recipe
-    // get artifacts
-    // let resp = client
-    //     .get_component_version_artifact()
-    //     .send()
-    //     .await
-    //     .unwrap();
-}
-
-// Get a component.
-async fn get_component_recipe(client: &Client, bucket: &str, region: &str) { //} -> Result<(), Error> {
-                                                                             // let constraint = BucketLocationConstraint::from(region);
-                                                                             // let cfg = CreateBucketConfiguration::builder()
-                                                                             //     .location_constraint(constraint)
-                                                                             //     .build();
-
-    // client
-    //     .create_bucket()
-    //     .create_bucket_configuration(cfg)
-    //     .bucket(bucket)
-    //     .send()
-    //     .await?;
-    // println!("Created bucket.");
-
-    // Ok(())
 }
 
 pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
@@ -220,13 +145,14 @@ pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
     let topic = shadow::assemble_topic(
         shadow::Topic::Update,
         thing_name,
-        Some("AWSManagedGreengrassV2Deployment"),
+        Some(DEPLOYMENT_SHADOW_NAME),
     )
     .unwrap();
 
     match DEPLOYSTATUS.get() {
         States::Deployment => {
-            let payload = assemble_payload(thing_name, &configuration_arn, &shadow_version, true).to_string();
+            let payload =
+                assemble_payload(thing_name, &configuration_arn, &shadow_version, true).to_string();
             let value = Publish {
                 dup: false,
                 qos: QoS::AtMostOnce,
@@ -236,9 +162,13 @@ pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
                 payload: Bytes::from(payload),
             };
             tx.send(value).await;
+
+            /// Todo: replace with aws operations, like get_component and so on.
+            time::sleep(Duration::from_secs(3)).await;
         }
         States::Inprogress => {
-            let payload = assemble_payload(thing_name, &configuration_arn, &shadow_version, false).to_string();
+            let payload = assemble_payload(thing_name, &configuration_arn, &shadow_version, false)
+                .to_string();
             let value = Publish {
                 dup: false,
                 qos: QoS::AtMostOnce,
@@ -247,11 +177,9 @@ pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
                 topic: topic.to_string(),
                 payload: Bytes::from(payload),
             };
-            time::sleep(Duration::from_secs(3)).await;
             tx.send(value).await;
         }
         States::Succeed => {}
     }
     DEPLOYSTATUS.next();
-    // Ok(())
 }

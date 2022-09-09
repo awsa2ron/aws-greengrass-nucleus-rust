@@ -101,7 +101,7 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn perform_setup(client: Client, mqtt_client: AsyncClient, args: &Args) {
+pub async fn perform_setup(client: &Client, mqtt_client: &AsyncClient, args: &Args) {
     if args.provision {
         provision(client, &args.thing_name, &args.thing_policy_name).await;
 
@@ -118,7 +118,7 @@ pub async fn perform_setup(client: Client, mqtt_client: AsyncClient, args: &Args
     info!("Launched Nucleus successfully.");
 }
 
-async fn provision(client: Client, name: &str, policy_name: &str) {
+async fn provision(client: &Client, name: &str, policy_name: &str) {
     info!(
         "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
         name
@@ -161,7 +161,7 @@ async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
  * @return created thing info
  */
 async fn createThing(
-    client: Client,
+    client: &Client,
     thingName: &str,
     policyName: &str,
 ) -> Result<ThingInfo, Error> {

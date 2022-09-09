@@ -14,8 +14,8 @@ async fn main() -> Result<(), Error> {
     config::init();
     let (mqtt_client, mut eventloop) = mqtt::init(&args.thing_name)?;
     let http_client = http::init(&args.aws_region).await.unwrap();
-    easysetup::perform_setup(http_client, mqtt_client.clone(), &args).await;
-    deployment::connect_shadow(mqtt_client.clone(), &args.thing_name).await;
+    easysetup::perform_setup(&http_client, &mqtt_client, &args).await;
+    deployment::connect_shadow(&mqtt_client, &args.thing_name).await;
 
     let (tx, mut rx) = mpsc::channel(128);
     loop {
@@ -23,10 +23,9 @@ async fn main() -> Result<(), Error> {
             Ok(event) = eventloop.poll() => { process(event, tx.clone()).await; }
             Some(msg) = rx.recv() => {
                 let mqtt_client = mqtt_client.clone();
-                    tokio::spawn(async move {
-                println!("channel receive {:?}", msg);
+                tokio::spawn(async move {
                     mqtt_client.publish(msg.topic, msg.qos, false, msg.payload).await.unwrap();
-                    });
+                });
             }
         }
     }
