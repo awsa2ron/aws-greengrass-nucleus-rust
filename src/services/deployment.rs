@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -8,6 +9,7 @@ use bytes::Bytes;
 use once_cell::sync::Lazy;
 use rumqttc::Publish;
 use rumqttc::{AsyncClient, QoS};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
 use tokio::sync::mpsc::Sender;
@@ -120,37 +122,33 @@ fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> V
 }
 
 pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
-    println!("const status is: {:#?}", DEPLOYSTATUS.get());
-
     let v: Value = serde_json::from_slice(&v.payload).unwrap();
-    // version
-    let shadow_version = v["version"].clone().to_string();
-    // ["state"]["fleetConfig"]
+    let shadow_version = v["version"].to_string();
     let v = v["state"]["fleetConfig"]
         .to_string()
-        .replace("\\", "")
         .trim_matches('"')
-        .to_string();
-    // ["state"]["fleetConfig"]["configurationArn"]
+        .replace("\\", "");
     let v: Value = serde_json::from_str(&v).unwrap();
-    // "arn:aws:greengrass:region:id:configuration:thing/name:deployment_version"
-    let configuration_arn = v["configurationArn"]
-        .to_string()
-        .trim_matches('"')
-        .to_string();
-    let (arn, version) = configuration_arn.rsplit_once(':').unwrap();
-    let (_, thing_name) = arn.rsplit_once('/').unwrap();
+
+    // "arn:aws:greengrass:<region>:<id>:configuration:thing/<name>:<version>"
+    let configuration_arn = v["configurationArn"].as_str().unwrap();
+    let (other, version) = configuration_arn.rsplit_once(':').unwrap();
+    let (_, thing_name) = other.rsplit_once('/').unwrap();
+
     let topic = shadow::assemble_topic(
         shadow::Topic::Update,
         thing_name,
         Some(DEPLOYMENT_SHADOW_NAME),
     )
     .unwrap();
+    let components = v["components"].to_string();
+    let (components_name, components_version) =
+        v["components"].to_string().rsplit_once(':').unwrap();
 
     match DEPLOYSTATUS.get() {
         States::Deployment => {
             let payload =
-                assemble_payload(thing_name, &configuration_arn, &shadow_version, true).to_string();
+                assemble_payload(thing_name, configuration_arn, &shadow_version, true).to_string();
             let value = Publish {
                 dup: false,
                 qos: QoS::AtMostOnce,
@@ -160,9 +158,12 @@ pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
                 payload: Bytes::from(payload),
             };
             tx.send(value).await;
-
-            /// Todo: replace with aws operations, like get_component and so on.
-            time::sleep(Duration::from_secs(3)).await;
+            let mut map: HashMap<String, HashMap<String, serde_json::Value>> =
+                serde_json::from_value(v["components"].to_owned()).unwrap();
+            for (k, v) in map.drain().take(1) {
+                component_deploy(k, v.get("version").unwrap().to_string()).await;
+            }
+            // time::sleep(Duration::from_secs(3)).await;
         }
         States::Inprogress => {
             let payload = assemble_payload(thing_name, &configuration_arn, &shadow_version, false)
@@ -180,4 +181,13 @@ pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
         States::Succeed => {}
     }
     DEPLOYSTATUS.next();
+}
+
+async fn component_deploy(name: String, version: String) {
+    println!("{}:{}", name, version);
+
+    // 1. resolve-component-candidates (option)
+    // 2. get-component to get recipe.
+    // 3. get-s3 for private component.
+
 }
