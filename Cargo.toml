@@ -34,6 +34,7 @@ once_cell = "1.0"
 anyhow = "1"
 dashmap = "5"
 aws-iot-device-sdk = "0.0.4"
+bytes = "1.2.1"
 
 [profile.release]
 strip = "debuginfo"
