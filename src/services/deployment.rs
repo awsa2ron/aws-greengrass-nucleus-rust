@@ -161,7 +161,9 @@ pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
             let mut map: HashMap<String, HashMap<String, serde_json::Value>> =
                 serde_json::from_value(v["components"].to_owned()).unwrap();
             for (k, v) in map.drain().take(1) {
-                component_deploy(k, v.get("version").unwrap().to_string()).await;
+                tokio::spawn(async move {
+                    component_deploy(k, v.get("version").unwrap().to_string()).await;
+                });
             }
             // time::sleep(Duration::from_secs(3)).await;
         }
