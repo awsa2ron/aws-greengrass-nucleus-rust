@@ -15,3 +15,7 @@ Cargo.lock
 /target
 config.json
 config.yaml
+config/*
+privKey.key
+rootCA.pem
+thingCert.crt

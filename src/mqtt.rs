@@ -60,7 +60,7 @@ pub fn init(name: &str) -> Result<(AsyncClient, EventLoop), Error> {
     let endpoint = config::Config::global().endpoint.iot_ats.to_string();
     // info!("Endpoint: {}", endpoint);
 
-    let root_dir = Path::new(".");
+    let root_dir = Path::new("./config");
     let ca_file_path = root_dir.join("rootCA.pem");
     let priv_key_file_path = root_dir.join("privKey.key");
     let cert_file_path = root_dir.join("thingCert.crt");
