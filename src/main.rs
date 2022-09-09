@@ -2,7 +2,7 @@
 #![allow(unused)]
 
 use anyhow::{Error, Result};
-use aws_greengrass_nucleus::{config, easysetup, http, mqtt, services::deployment, Args};
+use aws_greengrass_nucleus::{config, easysetup, mqtt, services::deployment, Args};
 use aws_iot_device_sdk::{shadow, *};
 use clap::Parser;
 use rumqttc::{self, Event, Packet, Publish};
@@ -16,8 +16,7 @@ async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::init();
     config::init();
     let (mqtt_client, mut eventloop) = mqtt::init(&args.thing_name)?;
-    let http_client = http::init(&args.aws_region).await.unwrap();
-    easysetup::perform_setup(&http_client, &mqtt_client, &args).await;
+    easysetup::perform_setup(&mqtt_client, &args).await;
     deployment::connect_shadow(&mqtt_client, &args.thing_name).await;
 
     let (tx, mut rx) = mpsc::channel(128);

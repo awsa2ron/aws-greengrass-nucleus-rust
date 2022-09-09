@@ -71,10 +71,8 @@ impl DeployStates {
     }
 }
 
-/// Todo: fix bug in aws-iot-device-sdk-rust
-/// Match shadow topic without suffix.
 pub async fn connect_shadow(mqtt_client: &AsyncClient, thing_name: &str) {
-    let topic = format!("$aws/things/{thing_name}/shadow/name/{DEPLOYMENT_SHADOW_NAME}/update/#");
+    let topic = format!("$aws/things/{thing_name}/shadow/name/{DEPLOYMENT_SHADOW_NAME}/#");
     mqtt_client
         .subscribe(&topic, QoS::AtMostOnce)
         .await
@@ -82,7 +80,7 @@ pub async fn connect_shadow(mqtt_client: &AsyncClient, thing_name: &str) {
 }
 
 pub async fn disconnect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
-    let topic = format!("$aws/things/{thing_name}/shadow/name/{DEPLOYMENT_SHADOW_NAME}/update/#");
+    let topic = format!("$aws/things/{thing_name}/shadow/name/{DEPLOYMENT_SHADOW_NAME}/#");
     mqtt_client.unsubscribe(&topic).await.unwrap();
 }
 

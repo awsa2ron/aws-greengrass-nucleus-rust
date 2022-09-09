@@ -101,9 +101,9 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn perform_setup(client: &Client, mqtt_client: &AsyncClient, args: &Args) {
+pub async fn perform_setup(mqtt_client: &AsyncClient, args: &Args) {
     if args.provision {
-        provision(client, &args.thing_name, &args.thing_policy_name).await;
+        provision(&args.thing_name, &args.aws_region, &args.thing_policy_name).await;
 
         let topic = format!("$aws/things/{}/greengrassv2/health/json", &args.thing_name);
         let payload = json!(services::status::upload_fss_data(&args.thing_name)).to_string();
@@ -118,12 +118,12 @@ pub async fn perform_setup(client: &Client, mqtt_client: &AsyncClient, args: &Ar
     info!("Launched Nucleus successfully.");
 }
 
-async fn provision(client: &Client, name: &str, policy_name: &str) {
+async fn provision(name: &str, region: &str, policy_name: &str) {
     info!(
         "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
         name
     );
-    let thing = createThing(client, &name, &policy_name).await.unwrap();
+    let thing = createThing(name, region, policy_name).await.unwrap();
     info!(
         "Successfully provisioned AWS IoT resources for the device with IoT Thing Name: {}",
         name
@@ -160,11 +160,12 @@ async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
  * @param thingName  thingName
  * @return created thing info
  */
-async fn createThing(
-    client: &Client,
-    thingName: &str,
-    policyName: &str,
-) -> Result<ThingInfo, Error> {
+async fn createThing(thingName: &str, region: &str, policyName: &str) -> Result<ThingInfo, Error> {
+    let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
+        .or_default_provider()
+        .or_else(Region::new("ap-southeast-1"));
+    let shared_config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&shared_config);
     // Find or create IoT policy
     match client.get_policy().policy_name(policyName).send().await {
         Ok(_) => info!("Found IoT policy {}, reusing it", policyName),
