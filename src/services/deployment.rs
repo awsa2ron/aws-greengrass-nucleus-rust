@@ -3,6 +3,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use anyhow::{Error, Result};
+use aws_config::meta::region::RegionProviderChain;
 use aws_iot_device_sdk::shadow;
 use aws_sdk_greengrassv2::{Client, Region};
 use bytes::Bytes;
@@ -15,6 +16,7 @@ use serde_json::Value;
 use tokio::sync::mpsc::Sender;
 use tokio::time;
 
+use crate::config;
 use crate::services::{Service, SERVICES};
 
 // const long TIMEOUT_FOR_SUBSCRIBING_TO_TOPICS_SECONDS = Duration.ofMinutes(1).getSeconds();
@@ -121,14 +123,15 @@ fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> V
     }
 }
 
-pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
-    let v: Value = serde_json::from_slice(&v.payload).unwrap();
+fn assemble_publish_content(v: Value) -> Publish {
     let shadow_version = v["version"].to_string();
-    let v = v["state"]["fleetConfig"]
-        .to_string()
-        .trim_matches('"')
-        .replace("\\", "");
-    let v: Value = serde_json::from_str(&v).unwrap();
+    let v: Value = serde_json::from_str(
+        &v["state"]["fleetConfig"]
+            .to_string()
+            .trim_matches('"')
+            .replace("\\", ""),
+    )
+    .unwrap();
 
     // "arn:aws:greengrass:<region>:<id>:configuration:thing/<name>:<version>"
     let configuration_arn = v["configurationArn"].as_str().unwrap();
@@ -141,23 +144,30 @@ pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
         Some(DEPLOYMENT_SHADOW_NAME),
     )
     .unwrap();
-    let components = v["components"].to_string();
-    let (components_name, components_version) =
-        v["components"].to_string().rsplit_once(':').unwrap();
+    let payload =
+        assemble_payload(thing_name, configuration_arn, &shadow_version, true).to_string();
+    Publish {
+        dup: false,
+        qos: QoS::AtMostOnce,
+        retain: false,
+        pkid: 0,
+        topic: topic.to_string(),
+        payload: Bytes::from(payload),
+    }
+}
+
+pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
+    let v: Value = serde_json::from_slice(&v.payload).unwrap();
+    // let components = v["components"].to_string();
+    // let (components_name, components_version) =
+    //     v["components"].to_string().rsplit_once(':').unwrap();
 
     match DEPLOYSTATUS.get() {
         States::Deployment => {
-            let payload =
-                assemble_payload(thing_name, configuration_arn, &shadow_version, true).to_string();
-            let value = Publish {
-                dup: false,
-                qos: QoS::AtMostOnce,
-                retain: false,
-                pkid: 0,
-                topic: topic.to_string(),
-                payload: Bytes::from(payload),
-            };
+            let value = assemble_publish_content(v);
             tx.send(value).await;
+        }
+        States::Inprogress => {
             let mut map: HashMap<String, HashMap<String, serde_json::Value>> =
                 serde_json::from_value(v["components"].to_owned()).unwrap();
             for (k, v) in map.drain().take(1) {
@@ -165,19 +175,8 @@ pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
                     component_deploy(k, v.get("version").unwrap().to_string()).await;
                 });
             }
-            // time::sleep(Duration::from_secs(3)).await;
-        }
-        States::Inprogress => {
-            let payload = assemble_payload(thing_name, &configuration_arn, &shadow_version, false)
-                .to_string();
-            let value = Publish {
-                dup: false,
-                qos: QoS::AtMostOnce,
-                retain: false,
-                pkid: 0,
-                topic: topic.to_string(),
-                payload: Bytes::from(payload),
-            };
+
+            let value = assemble_publish_content(v);
             tx.send(value).await;
         }
         States::Succeed => {}
@@ -188,8 +187,38 @@ pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
 async fn component_deploy(name: String, version: String) {
     println!("{}:{}", name, version);
 
+    let endpoint = &config::Config::global().endpoint.iot_ats;
+    let v: Vec<&str> = endpoint.split('.').collect();
+    let region = v[2];
+    println!("region:{}", region);
+
+    let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
+        .or_default_provider()
+        .or_else(Region::new("ap-southeast-1"));
+    let shared_config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&shared_config);
+
     // 1. resolve-component-candidates (option)
     // 2. get-component to get recipe.
+    let id = "12323534654";
+    let arn = format!("arn:aws:greengrass:{region}:{id}:components:{name}:{version}");
+    get_component(&client, &arn);
     // 3. get-s3 for private component.
+}
+async fn get_component(client: &Client, arn: &str) -> Result<(), Error> {
+    let resp = client.get_component().arn(arn).send().await?;
 
+    println!("components:");
+
+    println!(
+        "    recipeOutputFormat:  {:?}",
+        resp.recipe_output_format().unwrap()
+    );
+    println!("   recipe:  {:?}", resp.recipe().unwrap());
+    println!("   tags:  {:?}", resp.tags().unwrap());
+    println!();
+
+    println!();
+
+    Ok(())
 }
