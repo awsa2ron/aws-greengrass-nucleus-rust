@@ -9,6 +9,7 @@ use rumqttc::{AsyncClient, QoS};
 use serde_json::json;
 use serde_json::Value;
 use tokio::sync::mpsc::Sender;
+use bytes::Bytes;
 
 use crate::services::{Service, SERVICES};
 
@@ -36,31 +37,36 @@ impl Service for Deployments {
     }
 }
 
-// enum DeployStates {
-//     Deployment,
-//     inprogress,
-//     succeed
-// }
+#[derive(Debug, Copy, Clone)]
+enum States {
+    Deployment = 0,
+    Inprogress,
+    Succeed,
+}
 struct DeployStates {
-    mutex: Mutex<i32>,
+    mutex: Mutex<States>,
 }
 
 impl DeployStates {
-    fn new(&self) {
-        let mut lock = self.mutex.lock().unwrap();
-        *lock = 0;
-    }
-    fn get_or_init(&self) -> i32 {
+    fn get(&self) -> States {
         let lock = self.mutex.lock().unwrap();
         *lock
     }
-    fn increment(&self) {
+    fn reset(&self) {
         let mut lock = self.mutex.lock().unwrap();
-        *lock += 1;
+        *lock = States::Deployment;
+    }
+    fn next(&self) {
+        let mut lock = self.mutex.lock().unwrap();
+        match *lock {
+            States::Deployment => *lock = States::Inprogress,
+            States::Inprogress => *lock = States::Succeed,
+            States::Succeed => self.reset(),
+        }
     }
 }
 static DEPLOYSTATUS: DeployStates = DeployStates {
-    mutex: Mutex::new(0),
+    mutex: Mutex::new(States::Deployment),
 };
 
 pub struct Deployment {
@@ -117,71 +123,40 @@ pub async fn disconnect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
     mqtt_client.unsubscribe(&topic).await.unwrap();
 }
 
-async fn update_in_progress(client: AsyncClient, thing_name: String, arn: String, version: String) {
-    // let topic = format!("$aws/things/{thing_name}/shadow/name/AWSManagedGreengrassV2Deployment/update");
-    let topic = shadow::assemble_topic(
-        shadow::Topic::Update,
-        &thing_name,
-        Some("AWSManagedGreengrassV2Deployment"),
-    )
-    .unwrap()
-    .to_string();
-    println!("{topic}");
-
+fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> Value {
     let version: u8 = version.parse().unwrap();
-
-    let payload = json!({
-      "shadowName": "AWSManagedGreengrassV2Deployment",
-      "thingName": thing_name,
-      "state": {
-        "reported": {
-          "ggcVersion": "2.5.6",
-          "fleetConfigurationArnForStatus": arn,
-          "statusDetails": {},
-          "status": "IN_PROGRESS"
-        }
-      },
-      "version": version
-    });
-    println!("{payload}");
-
-    client
-        .publish(&topic, QoS::AtLeastOnce, false, payload.to_string())
-        .await
-        .unwrap();
-}
-
-async fn update_secceeded(client: AsyncClient, thing_name: String, arn: String, version: String) {
-    let topic = shadow::assemble_topic(
-        shadow::Topic::Update,
-        &thing_name,
-        Some("AWSManagedGreengrassV2Deployment"),
-    )
-    .unwrap()
-    .to_string();
-    println!("{topic}");
-    let payload = json!({
-      "shadowName": "AWSManagedGreengrassV2Deployment",
-      "thingName": thing_name,
-      "state": {
-        "reported": {
-          "ggcVersion": "2.5.6",
-          "fleetConfigurationArnForStatus": arn,
-          "statusDetails": {
-                "detailedStatus": "SUCCESSFUL"
+    if next {
+        json!({
+          "shadowName": "AWSManagedGreengrassV2Deployment",
+          "thingName": thing_name,
+          "state": {
+            "reported": {
+              "ggcVersion": "2.5.6",
+              "fleetConfigurationArnForStatus": arn,
+              "statusDetails": {},
+              "status": "IN_PROGRESS"
+            }
           },
-          "status": "SUCCEEDED"
-        }
-      },
-    //   "version": version + 1
-    });
-
-    client
-        .publish(&topic, QoS::AtLeastOnce, false, payload.to_string())
-        .await
-        .unwrap();
+          "version": version
+        })
+    } else {
+        json!({
+          "shadowName": "AWSManagedGreengrassV2Deployment",
+          "thingName": thing_name,
+          "state": {
+            "reported": {
+              "ggcVersion": "2.5.6",
+              "fleetConfigurationArnForStatus": arn,
+              "statusDetails": {
+                    "detailedStatus": "SUCCESSFUL"
+              },
+              "status": "SUCCEEDED"
+            }
+          },
+          "version": version + 1
+        })
+    }
 }
-
 async fn seeking() {
     // let region_provider = RegionProviderChain::first_try(Region::new("ap-southeast-1"))
     //     .or_default_provider()
@@ -218,13 +193,12 @@ async fn get_component_recipe(client: &Client, bucket: &str, region: &str) { //}
 }
 
 pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
-    DEPLOYSTATUS.increment();
-    println!("const status is: {}", DEPLOYSTATUS.get_or_init());
+    println!("const status is: {:#?}", DEPLOYSTATUS.get());
 
     let v: Value = serde_json::from_slice(&v.payload).unwrap();
     // version
     let shadow_version = v["version"].clone();
-    // remove '\'
+    // ["state"]["fleetConfig"]
     let v = v["state"]["fleetConfig"]
         .to_string()
         .replace("\\", "")
@@ -233,32 +207,44 @@ pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
     // ["state"]["fleetConfig"]["configurationArn"]
     let v: Value = serde_json::from_str(&v).unwrap();
     // "arn:aws:greengrass:region:id:configuration:thing/name:deployment_version"
-    // println!("{}", v["configurationArn"]);
     let configuration_arn = v["configurationArn"]
         .to_string()
         .trim_matches('"')
         .to_string();
-    if let Some((arn, version)) = configuration_arn.rsplit_once(':') {
-        let value = Publish {
-            dup: false,
-            qos: QoS::AtMostOnce,
-            retain: false,
-            pkid: 0,
-            topic: "hello".to_string(),
-            payload: "hello".to_string().into(),
-        };
-        tx.send(value).await;
-        // time::sleep(Duration::from_secs(3)).await;
-        // println!("{arn}|{version}");
-        // let c = mqtt_client.clone();
-        // let n = args.thing_name.clone();
-        // let a = configuration_arn.clone();
-        // let v = shadow_version.to_string();
-        // let s = "IN_PROGRESS".to_string();
-        // task::spawn(async move {
-        //     update(c, n, a, v, s).await;
-        //     // time::sleep(Duration::from_secs(3)).await;
-        // });
+    let (arn, version) = configuration_arn.rsplit_once(':').unwrap();
+    let (_, thing_name) = arn.rsplit_once('/').unwrap();
+    let payload = assemble_payload(thing_name, arn, version, true).to_string();
+    let topic = shadow::assemble_topic(
+        shadow::Topic::Update,
+        thing_name,
+        Some("AWSManagedGreengrassV2Deployment"),
+    )
+    .unwrap();
+    let value = Publish {
+        dup: false,
+        qos: QoS::AtMostOnce,
+        retain: false,
+        pkid: 0,
+        topic: topic.to_string(),
+        payload: Bytes::from(payload),
     };
+    tx.send(value).await;
+    // time::sleep(Duration::from_secs(3)).await;
+    // println!("{arn}|{version}");
+    // let c = mqtt_client.clone();
+    // let n = args.thing_name.clone();
+    // let a = configuration_arn.clone();
+    // let v = shadow_version.to_string();
+    // let s = "IN_PROGRESS".to_string();
+    // task::spawn(async move {
+    //     update(c, n, a, v, s).await;
+    //     // time::sleep(Duration::from_secs(3)).await;
+    // });
+    match DEPLOYSTATUS.get() {
+        States::Deployment => {}
+        States::Inprogress => {}
+        States::Succeed => {}
+    }
+    DEPLOYSTATUS.next();
     // Ok(())
 }
