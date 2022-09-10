@@ -37,7 +37,7 @@ async fn process(event: Event, tx: mpsc::Sender<Publish>) {
             Ok(TopicType::NamedShadow) => {
                 if shadow::match_topic(&v.topic).unwrap().shadow_op == shadow::Topic::UpdateDelta {
                     tokio::spawn(async move {
-                        deployment::resp_shadow_delta(v, tx).await;
+                        deployment::shadow_deployment(v, tx).await;
                     });
                 }
             }

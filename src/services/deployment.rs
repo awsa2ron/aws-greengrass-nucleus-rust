@@ -156,24 +156,21 @@ fn assemble_publish_content(v: Value) -> Publish {
     }
 }
 
-pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
+pub async fn shadow_deployment(v: Publish, tx: Sender<Publish>) {
     let v: Value = serde_json::from_slice(&v.payload).unwrap();
-    // let components = v["components"].to_string();
-    // let (components_name, components_version) =
-    //     v["components"].to_string().rsplit_once(':').unwrap();
-
     match DEPLOYSTATUS.get() {
         States::Deployment => {
             let value = assemble_publish_content(v);
             tx.send(value).await;
         }
         States::Inprogress => {
+            let data: Value = serde_json::from_str(&v["state"]["fleetConfig"].to_string().trim_matches('"').replace("\\", "")).unwrap();
+
+            // println!("[components] is {}", data["components"]);
             let mut map: HashMap<String, HashMap<String, serde_json::Value>> =
-                serde_json::from_value(v["components"].to_owned()).unwrap();
+                serde_json::from_value(data["components"].to_owned()).unwrap();
             for (k, v) in map.drain().take(1) {
-                tokio::spawn(async move {
-                    component_deploy(k, v.get("version").unwrap().to_string()).await;
-                });
+                component_deploy(k, v.get("version").unwrap().to_string().trim_matches('"').to_string()).await;
             }
 
             let value = assemble_publish_content(v);
@@ -185,12 +182,13 @@ pub async fn resp_shadow_delta(v: Publish, tx: Sender<Publish>) {
 }
 
 async fn component_deploy(name: String, version: String) {
-    println!("{}:{}", name, version);
+    // println!("{}:{}", name, version);
 
+    let id = &config::Config::global().id;
     let endpoint = &config::Config::global().endpoint.iot_ats;
     let v: Vec<&str> = endpoint.split('.').collect();
     let region = v[2];
-    println!("region:{}", region);
+    // println!("region:{}", region);
 
     let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
         .or_default_provider()
@@ -200,9 +198,9 @@ async fn component_deploy(name: String, version: String) {
 
     // 1. resolve-component-candidates (option)
     // 2. get-component to get recipe.
-    let id = "12323534654";
-    let arn = format!("arn:aws:greengrass:{region}:{id}:components:{name}:{version}");
-    get_component(&client, &arn);
+    let arn = format!("arn:aws:greengrass:{region}:{id}:components:{name}:versions:{version}");
+    // println!("component arn is {arn}");
+    get_component(&client, &arn).await;
     // 3. get-s3 for private component.
 }
 async fn get_component(client: &Client, arn: &str) -> Result<(), Error> {
@@ -214,7 +212,10 @@ async fn get_component(client: &Client, arn: &str) -> Result<(), Error> {
         "    recipeOutputFormat:  {:?}",
         resp.recipe_output_format().unwrap()
     );
-    println!("   recipe:  {:?}", resp.recipe().unwrap());
+    let recipe = resp.recipe().unwrap();
+    let recipe = recipe.to_owned().into_inner();
+    let recipe = String::from_utf8_lossy(&recipe);
+    println!("   recipe:  {:?}", recipe);
     println!("   tags:  {:?}", resp.tags().unwrap());
     println!();
 

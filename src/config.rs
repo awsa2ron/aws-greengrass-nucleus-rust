@@ -6,6 +6,7 @@ const CONFIG_FILE: &str = "./config/config.yaml";
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
+    pub id: String,
     pub endpoint: Endpoint,
     // pub certificates: Certificates,
 }
