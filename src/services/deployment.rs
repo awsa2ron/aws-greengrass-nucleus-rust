@@ -200,10 +200,10 @@ async fn component_deploy(name: String, version: String) {
     // 2. get-component to get recipe.
     let arn = format!("arn:aws:greengrass:{region}:{id}:components:{name}:versions:{version}");
     // println!("component arn is {arn}");
-    get_component(&client, &arn).await;
+    let recipe = get_component(&client, &arn).await.unwrap();
     // 3. get-s3 for private component.
 }
-async fn get_component(client: &Client, arn: &str) -> Result<(), Error> {
+async fn get_component(client: &Client, arn: &str) -> Result<Value, Error> {
     let resp = client.get_component().arn(arn).send().await?;
 
     println!("components:");
@@ -214,12 +214,12 @@ async fn get_component(client: &Client, arn: &str) -> Result<(), Error> {
     );
     let recipe = resp.recipe().unwrap();
     let recipe = recipe.to_owned().into_inner();
-    let recipe = String::from_utf8_lossy(&recipe);
-    println!("   recipe:  {:?}", recipe);
+    let recipe = serde_json::from_slice(&recipe).unwrap();
+    println!("   recipe:  {}", recipe);
     println!("   tags:  {:?}", resp.tags().unwrap());
     println!();
 
     println!();
 
-    Ok(())
+    Ok(recipe)
 }
