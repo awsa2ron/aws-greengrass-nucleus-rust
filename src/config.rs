@@ -2,10 +2,11 @@ use once_cell::sync::OnceCell;
 use serde::Deserialize;
 use std::fs;
 
-const CONFIG_FILE: &str = "config.yaml";
+const CONFIG_FILE: &str = "./config/config.yaml";
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
+    pub id: String,
     pub endpoint: Endpoint,
     // pub certificates: Certificates,
 }

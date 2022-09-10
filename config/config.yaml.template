@@ -1,3 +1,5 @@
+id:
+  111111111111
 endpoint:
   iot: <account-id>.iot.<region>.amazonaws.com
   iot_ats: <account-id>-ats.iot.<region>.amazonaws.com
