@@ -13,4 +13,9 @@ Cargo.lock
 # Added by cargo
 
 /target
-config.toml
+config.json
+config.yaml
+config/*
+privKey.key
+rootCA.pem
+thingCert.crt

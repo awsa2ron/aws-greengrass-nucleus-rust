@@ -3,13 +3,15 @@
 //! with the customer's provided config if desired, optionally provision the test device as an AWS IoT Thing, create and
 //! attach policies and certificates to it, create TES role and role alias or uses existing ones and attaches
 //! them to the IoT thing certificate.
-use crate::services;
+use crate::{services, Args};
 
 use super::provisioning;
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_iot::{model::KeyPair, Client};
 use aws_types::region::Region;
+use rumqttc::{AsyncClient, QoS};
+use serde_json::json;
 use std::fs;
 use std::path::Path;
 use tracing::{debug, event, info, span, Level};
@@ -99,33 +101,29 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn performSetup(
-    name: &str,
-    region: &str,
-    needProvisioning: bool,
-    thing_policy_name: &str,
-) {
-    let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
-        .or_default_provider()
-        .or_else(Region::new("ap-southeast-1"));
-    let shared_config = aws_config::from_env().region(region_provider).load().await;
-    let client = Client::new(&shared_config);
+pub async fn perform_setup(mqtt_client: &AsyncClient, args: &Args) {
+    if args.provision {
+        provision(&args.thing_name, &args.aws_region, &args.thing_policy_name).await;
 
-    if needProvisioning {
-        provision(client, name, thing_policy_name).await;
+        let topic = format!("$aws/things/{}/greengrassv2/health/json", &args.thing_name);
+        let payload = json!(services::status::upload_fss_data(&args.thing_name)).to_string();
+        info!("Send {payload} to {topic}");
+        mqtt_client
+            .publish(topic, QoS::AtLeastOnce, false, payload)
+            .await
+            .unwrap();
     }
-
     info!("Launching Nucleus...");
     services::start_services();
     info!("Launched Nucleus successfully.");
 }
 
-async fn provision(client: Client, name: &str, policy_name: &str) {
+async fn provision(name: &str, region: &str, policy_name: &str) {
     info!(
         "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
         name
     );
-    let thing = createThing(client, &name, &policy_name).await.unwrap();
+    let thing = createThing(name, region, policy_name).await.unwrap();
     info!(
         "Successfully provisioned AWS IoT resources for the device with IoT Thing Name: {}",
         name
@@ -162,11 +160,12 @@ async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
  * @param thingName  thingName
  * @return created thing info
  */
-async fn createThing(
-    client: Client,
-    thingName: &str,
-    policyName: &str,
-) -> Result<ThingInfo, Error> {
+async fn createThing(thingName: &str, region: &str, policyName: &str) -> Result<ThingInfo, Error> {
+    let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
+        .or_default_provider()
+        .or_else(Region::new("ap-southeast-1"));
+    let shared_config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&shared_config);
     // Find or create IoT policy
     match client.get_policy().policy_name(policyName).send().await {
         Ok(_) => info!("Found IoT policy {}, reusing it", policyName),
