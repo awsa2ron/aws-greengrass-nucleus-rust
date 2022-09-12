@@ -20,8 +20,8 @@ impl Config {
 
     fn from_config_file() -> Result<Config, std::io::Error> {
         let config =
-            fs::read_to_string(CONFIG_FILE).expect("Something went wrong reading the file");
-        let config: Config = serde_yaml::from_str(&config).unwrap();
+            fs::read_to_string(CONFIG_FILE).expect("Something went wrong reading config file");
+        let config: Config = serde_yaml::from_str(&config).expect("Something went wrong deserializing config file");
         Ok(config)
     }
 }
@@ -45,14 +45,11 @@ pub fn init() {
     CONFIG.set(_config).unwrap();
 }
 
-// #[cfg(test)]
-// mod tests {
-//     #[test]
-//     fn global_config_test() {
-//         use super::{config_init, Config};
-//         config_init();
-
-//         assert_eq!(Config::global().title, "config");
-//         // println!("Config is {:#?}", Config::global());
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn global_config_test() {
+        use super::{init, Config};
+        init();
+    }
+}
