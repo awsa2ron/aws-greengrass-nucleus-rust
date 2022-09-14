@@ -13,8 +13,8 @@ async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::init();
     config::init();
     let (mqtt_client, mut eventloop) = mqtt::init(&args.thing_name)?;
-    easysetup::perform_setup(&mqtt_client, &args).await;
-    deployment::connect_shadow(&mqtt_client, &args.thing_name).await;
+    easysetup::perform_setup(&mqtt_client, &args).await?;
+    deployment::connect_shadow(&mqtt_client, &args.thing_name).await?;
 
     let (tx, mut rx) = mpsc::channel(128);
     loop {
@@ -30,14 +30,14 @@ async fn main() -> Result<(), Error> {
     }
 }
 
-async fn process(event: Event, tx: mpsc::Sender<Publish>) {
+async fn process(event: Event, tx: mpsc::Sender<Publish>){
     println!("{:?}", event);
     if let Event::Incoming(Packet::Publish(v)) = event {
         match match_topic_type(&v.topic) {
             Ok(TopicType::NamedShadow) => {
                 if shadow::match_topic(&v.topic).unwrap().shadow_op == shadow::Topic::UpdateDelta {
                     tokio::spawn(async move {
-                        deployment::shadow_deployment(v, tx).await;
+                        deployment::shadow_deployment(v, tx).await.unwrap();
                     });
                 }
             }
@@ -45,6 +45,7 @@ async fn process(event: Event, tx: mpsc::Sender<Publish>) {
             _ => {}
         }
     }
+    // Ok(())
 }
 
 #[allow(unused)]

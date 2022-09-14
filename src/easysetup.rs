@@ -6,11 +6,11 @@
 use crate::{services, Args};
 
 use super::provisioning;
-use anyhow::{Error, Result};
+use anyhow::{Context, Error, Ok, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_iot::{model::KeyPair, Client};
 use aws_types::region::Region;
-use rumqttc::{AsyncClient, QoS};
+use rumqttc::{AsyncClient, ClientError, QoS};
 use serde_json::json;
 use std::fs;
 use std::path::Path;
@@ -81,7 +81,7 @@ const E2E_TESTS_THING_NAME_PREFIX: &str = "E2ETestsIotThing";
  *
  * To support HTTPS proxies and other custom truststore configurations, append to the file if it exists.
  */
-pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
+pub async fn downloadRootCAToFile(path: &Path) -> Result<()> {
     if Path::new(path).exists() {
         info!("Root CA file found at . Contents will be preserved.");
     }
@@ -101,29 +101,29 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn perform_setup(mqtt_client: &AsyncClient, args: &Args) {
+pub async fn perform_setup(mqtt_client: &AsyncClient, args: &Args) -> Result<()> {
     if args.provision {
-        provision(&args.thing_name, &args.aws_region, &args.thing_policy_name).await;
+        provision(&args.thing_name, &args.aws_region, &args.thing_policy_name).await?;
 
         let topic = format!("$aws/things/{}/greengrassv2/health/json", &args.thing_name);
         let payload = json!(services::status::upload_fss_data(&args.thing_name)).to_string();
         info!("Send {payload} to {topic}");
         mqtt_client
             .publish(topic, QoS::AtLeastOnce, false, payload)
-            .await
-            .unwrap();
+            .await?
     }
     info!("Launching Nucleus...");
     services::start_services();
     info!("Launched Nucleus successfully.");
+    Ok(())
 }
 
-async fn provision(name: &str, region: &str, policy_name: &str) {
+async fn provision(name: &str, region: &str, policy_name: &str) -> Result<()> {
     info!(
         "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
         name
     );
-    let thing = createThing(name, region, policy_name).await.unwrap();
+    let thing = createThing(name, region, policy_name).await?;
     info!(
         "Successfully provisioned AWS IoT resources for the device with IoT Thing Name: {}",
         name
@@ -132,6 +132,7 @@ async fn provision(name: &str, region: &str, policy_name: &str) {
     info!("Configuring Nucleus with provisioned resource details...");
     updateKernelConfigWithIotConfiguration(thing).await;
     info!("Successfully configured Nucleus with provisioned resource details!");
+    Ok(())
 }
 
 async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
@@ -160,7 +161,7 @@ async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
  * @param thingName  thingName
  * @return created thing info
  */
-async fn createThing(thingName: &str, region: &str, policyName: &str) -> Result<ThingInfo, Error> {
+async fn createThing(thingName: &str, region: &str, policyName: &str) -> Result<ThingInfo> {
     let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
         .or_default_provider()
         .or_else(Region::new("ap-southeast-1"));
@@ -168,7 +169,7 @@ async fn createThing(thingName: &str, region: &str, policyName: &str) -> Result<
     let client = Client::new(&shared_config);
     // Find or create IoT policy
     match client.get_policy().policy_name(policyName).send().await {
-        Ok(_) => info!("Found IoT policy {}, reusing it", policyName),
+        Ok => info!("Found IoT policy {}, reusing it", policyName),
         Err(_) => {
             info!("Creating new IoT policy {}", policyName);
             client
@@ -189,7 +190,9 @@ async fn createThing(thingName: &str, region: &str, policyName: &str) -> Result<
     let rootDir = Path::new(".");
     fs::write(
         rootDir.join("thingCert.crt"),
-        &keyResponse.certificate_pem().unwrap_or_default(),
+        &keyResponse
+            .certificate_pem()
+            .context("Failed to create certificate for thing.")?,
     )?;
     fs::write(
         rootDir.join("privKey.key"),
@@ -201,7 +204,9 @@ async fn createThing(thingName: &str, region: &str, policyName: &str) -> Result<
             .unwrap(),
     )?;
 
-    let certificateArn = &keyResponse.certificate_arn.unwrap();
+    let certificateArn = &keyResponse
+        .certificate_arn
+        .context("Failed to get certificate arn.")?;
     // Attach policy to cert
     info!("Attaching policy to certificate...");
     let _resp = client

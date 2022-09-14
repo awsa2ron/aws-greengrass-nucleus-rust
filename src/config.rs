@@ -15,13 +15,14 @@ pub static CONFIG: OnceCell<Config> = OnceCell::new();
 
 impl Config {
     pub fn global() -> &'static Config {
-        CONFIG.get().expect("logger is not initialized")
+        CONFIG.get().expect("config is not initialized")
     }
 
     fn from_config_file() -> Result<Config, std::io::Error> {
         let config =
             fs::read_to_string(CONFIG_FILE).expect("Something went wrong reading config file");
-        let config: Config = serde_yaml::from_str(&config).expect("Something went wrong deserializing config file");
+        let config: Config =
+            serde_yaml::from_str(&config).expect("Something went wrong deserializing config file");
         Ok(config)
     }
 }
@@ -40,7 +41,7 @@ pub struct Certificates {
 }
 
 pub fn init() {
-    let mut _config = Config::from_config_file().unwrap();
+    let mut _config = Config::from_config_file().expect("Something went wrong reading config file");
 
     CONFIG.set(_config).unwrap();
 }

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Duration;
 
+use anyhow::{Context, Ok};
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_iot_device_sdk::shadow;
@@ -77,23 +78,22 @@ impl DeployStates {
     }
 }
 
-pub async fn connect_shadow(mqtt_client: &AsyncClient, thing_name: &str) {
+pub async fn connect_shadow(mqtt_client: &AsyncClient, thing_name: &str) -> Result<()> {
     let topic = format!("$aws/things/{thing_name}/shadow/name/{DEPLOYMENT_SHADOW_NAME}/#");
-    mqtt_client
-        .subscribe(&topic, QoS::AtMostOnce)
-        .await
-        .unwrap();
+    mqtt_client.subscribe(&topic, QoS::AtMostOnce).await?;
+    Ok(())
 }
 
-pub async fn disconnect_shadow(mqtt_client: AsyncClient, thing_name: &str) {
+pub async fn disconnect_shadow(mqtt_client: AsyncClient, thing_name: &str) -> Result<()> {
     let topic = format!("$aws/things/{thing_name}/shadow/name/{DEPLOYMENT_SHADOW_NAME}/#");
-    mqtt_client.unsubscribe(&topic).await.unwrap();
+    mqtt_client.unsubscribe(&topic).await?;
+    Ok(())
 }
 
-fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> Value {
-    let version: u8 = version.parse().unwrap();
+fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> Result<Value> {
+    let version: u8 = version.parse()?;
     if next {
-        json!({
+        Ok(json!({
           "shadowName": DEPLOYMENT_SHADOW_NAME,
           "thingName": thing_name,
           "state": {
@@ -105,9 +105,9 @@ fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> V
             }
           },
           "version": version
-        })
+        }))
     } else {
-        json!({
+        Ok(json!({
           "shadowName": DEPLOYMENT_SHADOW_NAME,
           "thingName": thing_name,
           "state": {
@@ -121,48 +121,54 @@ fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> V
             }
           },
           "version": version
-        })
+        }))
     }
 }
 
-fn assemble_publish_content(v: Value) -> Publish {
+fn assemble_publish_content(v: Value) -> Result<Publish> {
     let shadow_version = v["version"].to_string();
     let v: Value = serde_json::from_str(
         &v["state"]["fleetConfig"]
             .to_string()
             .trim_matches('"')
             .replace("\\", ""),
-    )
-    .unwrap();
+    )?;
 
     // "arn:aws:greengrass:<region>:<id>:configuration:thing/<name>:<version>"
-    let configuration_arn = v["configurationArn"].as_str().unwrap();
-    let (other, version) = configuration_arn.rsplit_once(':').unwrap();
-    let (_, thing_name) = other.rsplit_once('/').unwrap();
+    let configuration_arn = v["configurationArn"]
+        .as_str()
+        .context("Failed to get configuration arn.")?;
+    let (other, version) = configuration_arn
+        .rsplit_once(':')
+        .context("Failed to get configuration version.")?;
+    let (_, thing_name) = other
+        .rsplit_once('/')
+        .context("Failed to get thing name.")?;
 
     let topic = shadow::assemble_topic(
         shadow::Topic::Update,
         thing_name,
         Some(DEPLOYMENT_SHADOW_NAME),
     )
-    .unwrap();
-    let payload =
-        assemble_payload(thing_name, configuration_arn, &shadow_version, true).to_string();
-    Publish {
+    .map_err(Error::msg)?;
+     let payload =
+        assemble_payload(thing_name, configuration_arn, &shadow_version, true)?.to_string();
+    Ok(Publish {
         dup: false,
         qos: QoS::AtMostOnce,
         retain: false,
         pkid: 0,
         topic: topic.to_string(),
         payload: Bytes::from(payload),
-    }
+    })
 }
 
-pub async fn shadow_deployment(v: Publish, tx: Sender<Publish>) {
-    let v: Value = serde_json::from_slice(&v.payload).unwrap();
+pub async fn shadow_deployment(v: Publish, tx: Sender<Publish>) -> Result<()> {
+    let v: Value = serde_json::from_slice(&v.payload)
+        .context("Failed to deserialize deployment json file.")?;
     match DEPLOYSTATUS.get() {
         States::Deployment => {
-            let value = assemble_publish_content(v);
+            let value = assemble_publish_content(v)?;
             tx.send(value).await;
         }
         States::Inprogress => {
@@ -170,18 +176,17 @@ pub async fn shadow_deployment(v: Publish, tx: Sender<Publish>) {
                 &v["state"]["fleetConfig"]
                     .to_string()
                     .trim_matches('"')
-                    .replace("\\", ""),
-            )
-            .unwrap();
+                    .replace('\\', ""),
+            )?;
 
             // println!("[components] is {}", data["components"]);
             let mut map: HashMap<String, HashMap<String, serde_json::Value>> =
-                serde_json::from_value(data["components"].to_owned()).unwrap();
+                serde_json::from_value(data["components"].to_owned())?;
             for (k, v) in map.drain().take(1) {
                 component_deploy(
                     k,
                     v.get("version")
-                        .unwrap()
+                        .context("Failed to find version feild.")?
                         .to_string()
                         .trim_matches('"')
                         .to_string(),
@@ -189,15 +194,16 @@ pub async fn shadow_deployment(v: Publish, tx: Sender<Publish>) {
                 .await;
             }
 
-            let value = assemble_publish_content(v);
+            let value = assemble_publish_content(v)?;
             tx.send(value).await;
         }
         States::Succeed => {}
     }
     DEPLOYSTATUS.next();
+    Ok(())
 }
 
-async fn component_deploy(name: String, version: String) {
+async fn component_deploy(name: String, version: String) -> Result<()>{
     // println!("{}:{}", name, version);
 
     let id = &config::Config::global().id;
@@ -217,7 +223,7 @@ async fn component_deploy(name: String, version: String) {
     // 2. get-component to get recipe.
     let arn = format!("arn:aws:greengrass:{region}:{id}:components:{name}:versions:{version}");
     // println!("component arn is {arn}");
-    let recipe = get_component(&ggv2_client, &arn).await.unwrap();
+    let recipe = get_component(&ggv2_client, &arn).await?;
     // 3. get-s3 for private component.
     println!("{}", recipe["Manifests"][0]["Artifacts"][0]["Uri"]);
     let uri = recipe["Manifests"][0]["Artifacts"][0]["Uri"]
@@ -225,6 +231,8 @@ async fn component_deploy(name: String, version: String) {
         .trim_matches('"')
         .to_owned();
     get_s3_object(&s3_Client, &uri).await;
+
+    Ok(())
 }
 async fn get_component(client: &Greengrassv2_Client, arn: &str) -> Result<Value, Error> {
     let resp = client.get_component().arn(arn).send().await?;
