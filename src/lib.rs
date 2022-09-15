@@ -44,7 +44,7 @@ pub struct Args {
     // If the thing with
     // this name doesn't exist in your AWS account, the AWS IoT Greengrass Core software creates it.
     // Defaults to GreengrassV2IotThing_ plus a random UUID.
-    #[clap(short, long)]
+    #[clap(short, long, default_value = "GreengrassV2IotThing_random_uuid")]
     pub thing_name: String,
 
     // (Optional) The name of the AWS IoT thing group where you add this core
