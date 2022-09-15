@@ -19,8 +19,8 @@ use serde_json::Value;
 use tokio::sync::mpsc::Sender;
 use tokio::time;
 
-use crate::{config, ggcVersion};
 use crate::services::{Service, SERVICES};
+use crate::{config, ggcVersion};
 
 pub const CONFIGURATION_ARN_LOG_KEY_NAME: &str = "CONFIGURATION_ARN";
 pub const DESIRED_STATUS_KEY: &str = "desiredStatus";
@@ -122,13 +122,7 @@ fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> R
 
 fn assemble_publish_content(v: Value) -> Result<Publish> {
     let shadow_version = v["version"].to_string();
-    let v: Value = serde_json::from_str(
-        &v["state"]["fleetConfig"]
-            .to_string()
-            .trim_matches('"')
-            .replace("\\", ""),
-    )?;
-
+    let v: Value = serde_json::from_str(v["state"]["fleetConfig"].as_str().unwrap())?;
     // "arn:aws:greengrass:<region>:<id>:configuration:thing/<name>:<version>"
     let configuration_arn = v["configurationArn"]
         .as_str()
@@ -146,15 +140,15 @@ fn assemble_publish_content(v: Value) -> Result<Publish> {
         Some(DEPLOYMENT_SHADOW_NAME),
     )
     .map_err(Error::msg)?;
-     let payload =
-        assemble_payload(thing_name, configuration_arn, &shadow_version, true)?.to_string();
+    let payload =
+        assemble_payload(thing_name, configuration_arn, &shadow_version, true)?;
     Ok(Publish {
         dup: false,
         qos: QoS::AtMostOnce,
         retain: false,
         pkid: 0,
         topic: topic.to_string(),
-        payload: Bytes::from(payload),
+        payload: Bytes::from(payload.to_string()),
     })
 }
 
@@ -167,12 +161,7 @@ pub async fn shadow_deployment(v: Publish, tx: Sender<Publish>) -> Result<()> {
             tx.send(value).await;
         }
         States::Inprogress => {
-            let data: Value = serde_json::from_str(
-                &v["state"]["fleetConfig"]
-                    .to_string()
-                    .trim_matches('"')
-                    .replace('\\', ""),
-            )?;
+            let data: Value = serde_json::from_str(v["state"]["fleetConfig"].as_str().unwrap())?;
 
             // println!("[components] is {}", data["components"]);
             let mut map: HashMap<String, HashMap<String, serde_json::Value>> =
@@ -198,7 +187,7 @@ pub async fn shadow_deployment(v: Publish, tx: Sender<Publish>) -> Result<()> {
     Ok(())
 }
 
-async fn component_deploy(name: String, version: String) -> Result<()>{
+async fn component_deploy(name: String, version: String) -> Result<()> {
     // println!("{}:{}", name, version);
 
     let id = &config::Config::global().id;
@@ -221,10 +210,7 @@ async fn component_deploy(name: String, version: String) -> Result<()>{
     let recipe = get_component(&ggv2_client, &arn).await?;
     // 3. get-s3 for private component.
     println!("{}", recipe["Manifests"][0]["Artifacts"][0]["Uri"]);
-    let uri = recipe["Manifests"][0]["Artifacts"][0]["Uri"]
-        .to_string()
-        .trim_matches('"')
-        .to_owned();
+    let uri = recipe["Manifests"][0]["Artifacts"][0]["Uri"].as_str().unwrap();
     get_s3_object(&s3_client, &uri).await;
 
     Ok(())
