@@ -2,7 +2,6 @@ use once_cell::sync::OnceCell;
 use serde::Deserialize;
 use std::fs;
 
-
 #[derive(Deserialize, Debug)]
 pub struct Config {
     pub id: String,
@@ -18,8 +17,7 @@ impl Config {
     }
 
     fn from_config_file(path: &str) -> Result<Config, std::io::Error> {
-        let config =
-            fs::read_to_string(path).expect("Something went wrong reading config file");
+        let config = fs::read_to_string(path).expect("Something went wrong reading config file");
         let config: Config =
             serde_yaml::from_str(&config).expect("Something went wrong deserializing config file");
         Ok(config)
@@ -40,7 +38,8 @@ pub struct Certificates {
 }
 
 pub fn init(path: &str) {
-    let mut _config = Config::from_config_file(path).expect("Something went wrong reading config file");
+    let mut _config =
+        Config::from_config_file(path).expect("Something went wrong reading config file");
 
     CONFIG.set(_config).unwrap();
 }

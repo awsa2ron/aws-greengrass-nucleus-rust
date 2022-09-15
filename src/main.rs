@@ -32,7 +32,7 @@ async fn main() -> Result<(), Error> {
     }
 }
 
-async fn process(event: Event, tx: mpsc::Sender<Publish>){
+async fn process(event: Event, tx: mpsc::Sender<Publish>) {
     println!("{:?}", event);
     if let Event::Incoming(Packet::Publish(v)) = event {
         match match_topic_type(&v.topic) {
