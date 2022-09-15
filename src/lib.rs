@@ -14,6 +14,7 @@ pub use self::services::kernel::VERSION as ggcVersion;
 pub use self::services::status::upload_fss_data as fleet_status;
 
 use clap::Parser;
+
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 pub struct Args {
@@ -23,15 +24,14 @@ pub struct Args {
     pub aws_region: String,
 
     // (Optional) The path to the folder to use as the root for the AWS IoT Greengrass Core
-    // software. Defaults to ~/.greengrass.
-    #[clap(long, default_value = "/greengrass/v2")]
-    pub root: String,
+    // software.
+    #[clap(long)]
+    pub root: Option<String>,
 
     // (Optional) The path to the configuration file that you use to run the AWS
     // IoT Greengrass Core software
-    // software. Defaults to ~/.greengrass
-    #[clap(long, default_value = "~/.greengrass")]
-    pub init_config: String,
+    #[clap(long, default_value = "config/config.yaml")]
+    pub init_config: std::path::PathBuf,
 
     // (Optional) Specify true or false. If true, the AWS IoT Greengrass Core software registers this
     // device as an AWS IoT thing, and provisions the AWS resources that the software requires. The
@@ -40,10 +40,10 @@ pub struct Args {
     #[clap(long)]
     pub provision: bool,
 
-    // (Optional) The name of the AWS IoT thing that you register as this core device.
+    // The name of the AWS IoT thing that you register as this core device.
     // If the thing with
     // this name doesn't exist in your AWS account, the AWS IoT Greengrass Core software creates it.
-    //Defaults to GreengrassV2IotThing_ plus a random UUID.
+    // Defaults to GreengrassV2IotThing_ plus a random UUID.
     #[clap(short, long)]
     pub thing_name: String,
 
