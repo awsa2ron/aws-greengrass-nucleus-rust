@@ -1,6 +1,6 @@
 [package]
 name = "aws-greengrass-nucleus"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["Aaron Tsui <kaixu@amazon.com>"]
 edition = "2021"
 description = "aws greengrass nucleus in Rust (unofficial)"
