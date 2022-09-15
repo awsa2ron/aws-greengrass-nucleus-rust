@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 //! The setup script is intended to give a brand new user of Greengrass to get started with Greengrass device quickly.
 //! As part of that experience the user can get a fat bin for the Greengrass Nucleus, the script can launch the Nucleus
 //! with the customer's provided config if desired, optionally provision the test device as an AWS IoT Thing, create and
@@ -17,14 +18,14 @@ use std::path::Path;
 use tracing::{debug, event, info, span, Level};
 
 pub struct ThingInfo {
-    thingArn: String,
-    thingName: String,
-    certificateArn: String,
-    certificateId: String,
-    certificatePem: String,
-    keyPair: KeyPair,
-    dataEndpoint: String,
-    credEndpoint: String,
+    thing_arn: String,
+    thing_name: String,
+    certificate_arn: String,
+    certificate_id: String,
+    certificate_pem: String,
+    key_pair: KeyPair,
+    data_endpoint: String,
+    cred_endpoint: String,
 }
 
 const GG_TOKEN_EXCHANGE_ROLE_ACCESS_POLICY_SUFFIX: &str = "Access";
@@ -146,7 +147,7 @@ async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
     downloadRootCAToFile(Path::new("rootCA.pem")).await;
 
     provisioning::updateSystemConfiguration(
-        thing.thingName.as_str(),
+        thing.thing_name.as_str(),
         caFilePath,
         privKeyFilePath,
         certFilePath,
@@ -158,10 +159,10 @@ async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
  *
  * @param client     iotClient to use
  * @param policyName policyName
- * @param thingName  thingName
+ * @param thing_name  thing_name
  * @return created thing info
  */
-async fn createThing(thingName: &str, region: &str, policyName: &str) -> Result<ThingInfo> {
+async fn createThing(thing_name: &str, region: &str, policyName: &str) -> Result<ThingInfo> {
     let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
         .or_default_provider()
         .or_else(Region::new("ap-southeast-1"));
@@ -204,7 +205,7 @@ async fn createThing(thingName: &str, region: &str, policyName: &str) -> Result<
             .unwrap(),
     )?;
 
-    let certificateArn = &keyResponse
+    let certificate_arn = &keyResponse
         .certificate_arn
         .context("Failed to get certificate arn.")?;
     // Attach policy to cert
@@ -212,44 +213,44 @@ async fn createThing(thingName: &str, region: &str, policyName: &str) -> Result<
     let _resp = client
         .attach_policy()
         .policy_name(policyName)
-        .target(certificateArn)
+        .target(certificate_arn)
         .send()
         .await?;
 
     // Create the thing and attach the cert to it
     info!("Creating IoT Thing ...");
-    let resp = client.create_thing().thing_name(thingName).send().await?;
-    let thingArn = resp.thing_arn();
+    let resp = client.create_thing().thing_name(thing_name).send().await?;
+    let thing_arn = resp.thing_arn();
 
     info!("Attaching certificate to IoT thing...");
 
     let _resp = client
         .attach_thing_principal()
-        .thing_name(thingName)
-        .principal(certificateArn)
+        .thing_name(thing_name)
+        .principal(certificate_arn)
         .send()
         .await?;
 
-    let dataEndpoint = client
+    let data_endpoint = client
         .describe_endpoint()
         .endpoint_type("iot:Data-ATS")
         .send()
         .await?;
-    let credEndpoint = client
+    let cred_endpoint = client
         .describe_endpoint()
         .endpoint_type("iot:CredentialProvider")
         .send()
         .await?;
 
     let thingInfo = ThingInfo {
-        thingArn: thingArn.unwrap().to_string(),
-        thingName: thingName.to_string(),
-        certificateArn: certificateArn.to_string(),
-        certificateId: certificateArn.to_string(),
-        certificatePem: certificateArn.to_string(),
-        keyPair: keyResponse.key_pair.unwrap(),
-        dataEndpoint: dataEndpoint.endpoint_address.unwrap(),
-        credEndpoint: credEndpoint.endpoint_address.unwrap(),
+        thing_arn: thing_arn.unwrap().to_string(),
+        thing_name: thing_name.to_string(),
+        certificate_arn: certificate_arn.to_string(),
+        certificate_id: certificate_arn.to_string(),
+        certificate_pem: certificate_arn.to_string(),
+        key_pair: keyResponse.key_pair.unwrap(),
+        data_endpoint: data_endpoint.endpoint_address.unwrap(),
+        cred_endpoint: cred_endpoint.endpoint_address.unwrap(),
     };
     Ok(thingInfo)
 }
@@ -259,9 +260,9 @@ async fn createThing(thingName: &str, region: &str, policyName: &str) -> Result<
 //  *
 //  * @param roleName       rolaName
 //  * @param roleAliasName  roleAlias name
-//  * @param certificateArn certificate arn for the IoT thing
+//  * @param certificate_arn certificate arn for the IoT thing
 //  */
-// pub fn setupIoTRoleForTes(roleName: String, roleAliasName: String, certificateArn: String) {
+// pub fn setupIoTRoleForTes(roleName: String, roleAliasName: String, certificate_arn: String) {
 //     // String roleAliasArn;
 //     // try {
 //         // Get Role Alias arn
@@ -308,6 +309,6 @@ async fn createThing(thingName: &str, region: &str, policyName: &str) -> Result<
 
 //     outStream.println("Attaching TES role policy to IoT thing...");
 //     AttachPolicyRequest attachPolicyRequest =
-//             AttachPolicyRequest.builder().policyName(iotRolePolicyName).target(certificateArn).build();
+//             AttachPolicyRequest.builder().policyName(iotRolePolicyName).target(certificate_arn).build();
 //     iotClient.attachPolicy(attachPolicyRequest);
 // }

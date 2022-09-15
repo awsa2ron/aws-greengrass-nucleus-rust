@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 use std::path::{Path, PathBuf};
 
 use anyhow::Ok;
@@ -8,10 +9,10 @@ use tracing::{debug, event, info, span, Level};
 
 #[derive(Debug)]
 pub struct SystemConfiguration {
-    pub certificateFilePath: PathBuf,
-    pub privateKeyPath: PathBuf,
-    pub rootCAPath: PathBuf,
-    thingName: String,
+    pub certificate_path: PathBuf,
+    pub private_key_path: PathBuf,
+    pub rootCA_path: PathBuf,
+    thing_name: String,
 }
 
 pub static SYSCONFIG: OnceCell<SystemConfiguration> = OnceCell::new();
@@ -23,16 +24,16 @@ impl SystemConfiguration {
             .expect("System configuration is not initialized")
     }
     fn update(
-        thingName: String,
-        certificateFilePath: PathBuf,
-        privateKeyPath: PathBuf,
-        rootCAPath: PathBuf,
+        thing_name: String,
+        certificate_path: PathBuf,
+        private_key_path: PathBuf,
+        rootCA_path: PathBuf,
     ) -> Result<SystemConfiguration, anyhow::Error> {
         let ret = SystemConfiguration {
-            certificateFilePath,
-            privateKeyPath,
-            rootCAPath,
-            thingName,
+            certificate_path,
+            private_key_path,
+            rootCA_path,
+            thing_name,
         };
         Ok(ret)
     }

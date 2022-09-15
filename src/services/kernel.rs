@@ -1,6 +1,6 @@
 use crate::services::{Service, SERVICES};
 
-const VERSION: &str = "2.5.5";
+pub const VERSION: &str = "2.5.6";
 const NAME: &str = "aws.greengrass.Nucleus";
 pub struct Kernel {}
 

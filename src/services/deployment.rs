@@ -19,13 +19,9 @@ use serde_json::Value;
 use tokio::sync::mpsc::Sender;
 use tokio::time;
 
-use crate::config;
+use crate::{config, ggcVersion};
 use crate::services::{Service, SERVICES};
 
-// const long TIMEOUT_FOR_SUBSCRIBING_TO_TOPICS_SECONDS = Duration.ofMinutes(1).getSeconds();
-// const long TIMEOUT_FOR_PUBLISHING_TO_TOPICS_SECONDS = Duration.ofMinutes(1).getSeconds();
-// const long WAIT_TIME_TO_SUBSCRIBE_AGAIN_IN_MS = Duration.ofMinutes(2).toMillis();
-// const Logger logger = LogManager.getLogger(ShadowDeploymentListener.class);
 pub const CONFIGURATION_ARN_LOG_KEY_NAME: &str = "CONFIGURATION_ARN";
 pub const DESIRED_STATUS_KEY: &str = "desiredStatus";
 pub const FLEET_CONFIG_KEY: &str = "fleetConfig";
@@ -36,13 +32,12 @@ pub const DEVICE_OFFLINE_MESSAGE: &str = "Device not configured to talk to AWS I
 // + "Single device deployment is offline";
 pub const SUBSCRIBING_TO_SHADOW_TOPICS_MESSAGE: &str = "Subscribing to Iot Shadow topics";
 
-const VERSION: &str = "2.5.6";
 const NAME: &str = "DeploymentService";
 pub struct Deployments {}
 
 impl Service for Deployments {
     fn enable() {
-        SERVICES.insert(NAME.into(), Self::new(NAME, VERSION));
+        SERVICES.insert(NAME.into(), Self::new(NAME, ggcVersion));
     }
 }
 
@@ -95,12 +90,12 @@ fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> R
     if next {
         Ok(json!({
           "shadowName": DEPLOYMENT_SHADOW_NAME,
-          "thingName": thing_name,
+          "thing_name": thing_name,
           "state": {
             "reported": {
-              "ggcVersion": VERSION,
+              "ggcVersion": ggcVersion,
               "fleetConfigurationArnForStatus": arn,
-              "statusDetails": {},
+              "status_details": {},
               "status": "IN_PROGRESS"
             }
           },
@@ -109,12 +104,12 @@ fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> R
     } else {
         Ok(json!({
           "shadowName": DEPLOYMENT_SHADOW_NAME,
-          "thingName": thing_name,
+          "thing_name": thing_name,
           "state": {
             "reported": {
-              "ggcVersion": VERSION,
+              "ggcVersion": ggcVersion,
               "fleetConfigurationArnForStatus": arn,
-              "statusDetails": {
+              "status_details": {
                     "detailedStatus": "SUCCESSFUL"
               },
               "status": "SUCCEEDED"
@@ -217,7 +212,7 @@ async fn component_deploy(name: String, version: String) -> Result<()>{
         .or_else(Region::new("ap-southeast-1"));
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let ggv2_client = Greengrassv2_Client::new(&shared_config);
-    let s3_Client = S3_Client::new(&shared_config);
+    let s3_client = S3_Client::new(&shared_config);
 
     // 1. resolve-component-candidates (option)
     // 2. get-component to get recipe.
@@ -230,7 +225,7 @@ async fn component_deploy(name: String, version: String) -> Result<()>{
         .to_string()
         .trim_matches('"')
         .to_owned();
-    get_s3_object(&s3_Client, &uri).await;
+    get_s3_object(&s3_client, &uri).await;
 
     Ok(())
 }
