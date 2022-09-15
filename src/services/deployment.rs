@@ -140,8 +140,7 @@ fn assemble_publish_content(v: Value) -> Result<Publish> {
         Some(DEPLOYMENT_SHADOW_NAME),
     )
     .map_err(Error::msg)?;
-    let payload =
-        assemble_payload(thing_name, configuration_arn, &shadow_version, true)?;
+    let payload = assemble_payload(thing_name, configuration_arn, &shadow_version, true)?;
     Ok(Publish {
         dup: false,
         qos: QoS::AtMostOnce,
@@ -197,8 +196,7 @@ async fn component_deploy(name: String, version: String) -> Result<()> {
     // println!("region:{}", region);
 
     let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
-        .or_default_provider()
-        .or_else(Region::new("ap-southeast-1"));
+        .or_default_provider();
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let ggv2_client = Greengrassv2_Client::new(&shared_config);
     let s3_client = S3_Client::new(&shared_config);
@@ -210,7 +208,9 @@ async fn component_deploy(name: String, version: String) -> Result<()> {
     let recipe = get_component(&ggv2_client, &arn).await?;
     // 3. get-s3 for private component.
     println!("{}", recipe["Manifests"][0]["Artifacts"][0]["Uri"]);
-    let uri = recipe["Manifests"][0]["Artifacts"][0]["Uri"].as_str().unwrap();
+    let uri = recipe["Manifests"][0]["Artifacts"][0]["Uri"]
+        .as_str()
+        .unwrap();
     get_s3_object(&s3_client, &uri).await;
 
     Ok(())

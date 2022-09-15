@@ -164,8 +164,7 @@ async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
  */
 async fn createThing(thing_name: &str, region: &str, policyName: &str) -> Result<ThingInfo> {
     let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
-        .or_default_provider()
-        .or_else(Region::new("ap-southeast-1"));
+        .or_default_provider();
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&shared_config);
     // Find or create IoT policy
