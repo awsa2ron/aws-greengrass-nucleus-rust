@@ -25,11 +25,11 @@ pub static SERVICES: Lazy<DashMap<String, ServiceStatus>> = Lazy::new(|| DashMap
 pub trait Service {
     fn new(name: &'static str, ver: &'static str) -> ServiceStatus {
         ServiceStatus {
-            componentName: name,
+            component_name: name,
             version: ver,
-            fleetConfigArns: vec![],
-            statusDetails: json!(null),
-            isRoot: false,
+            fleetconfig_arns: vec![],
+            status_details: json!(null),
+            is_root: false,
             status: State::FINISHED,
         }
     }
@@ -43,12 +43,12 @@ pub trait Service {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ServiceStatus {
-    componentName: &'static str,
+    component_name: &'static str,
     version: &'static str,
-    fleetConfigArns: Vec<String>,
-    statusDetails: Value,
+    fleetconfig_arns: Vec<String>,
+    status_details: Value,
     // We need to add this since during serialization, the 'is' is removed.
-    isRoot: bool,
+    is_root: bool,
     status: State,
 }
 

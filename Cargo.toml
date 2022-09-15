@@ -22,7 +22,7 @@ aws-config = "0.48.0"
 aws-sdk-s3 = "0.18.0"
 aws-sdk-iot = "0.18.0"
 aws-sdk-greengrassv2 = "0.18.0"
-rumqttc = "0.15"
+rumqttc = "0.16"
 tokio = { version = "1", features = ["full"] }
 clap = { version = "3", features = ["derive"] }
 tracing = "0.1"
@@ -39,4 +39,7 @@ bytes = "1.2.1"
 thiserror = "1.0.34"
 
 [profile.release]
-strip = "debuginfo"
+strip = true # Strip symbols from the binary
+opt-level = "s" # Optimize for size
+lto = true # Enable link time optimization
+codegen-units = 1 # Maximize size reduction optimizations

@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 //! # Fleet Status Service
 //!
 //! It is responsible for uploading the statuses of components within the device for all fleets.
@@ -51,6 +52,8 @@ use tracing::{debug, event, info, span, Level};
 
 use crate::services::{Service, SERVICES};
 
+use super::kernel;
+
 const VERSION: &str = "";
 const NAME: &str = "FleetStatusService";
 pub struct Status {}
@@ -69,7 +72,7 @@ pub struct FleetStatusDetails {
     architecture: &'static str,
     thing: String,
     overallDeviceStatus: OverallStatus,
-    sequenceNumber: usize,
+    sequence_number: usize,
     pub components: Vec<crate::services::ServiceStatus>,
     // components: Vec<ComponentStatusDetails>,
     // deploymentInformation: String,
@@ -81,12 +84,12 @@ pub struct FleetStatusDetails {
 impl FleetStatusDetails {
     pub fn new(name: &str) -> Self {
         FleetStatusDetails {
-            ggcVersion: "2.5.5",
+            ggcVersion: kernel::VERSION,
             platform: "linux",
             architecture: "x86_64",
             thing: name.to_string(),
             overallDeviceStatus: OverallStatus::HEALTHY,
-            sequenceNumber: 9,
+            sequence_number: 9,
             // deploymentInformation: "".to_string(),
             components: vec![],
         }
@@ -109,34 +112,34 @@ struct StatusDetails {
 }
 
 // pub const STATUS_KEY: &str = "status";
-// pub const STATUS_DETAILS_KEY: &str = "statusDetails";
+// pub const STATUS_DETAILS_KEY: &str = "status_details";
 // pub const ARN_FOR_STATUS_KEY: &str = "fleetConfigurationArnForStatus";
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DeploymentInformation {
     status: String,
-    statusDetails: StatusDetails,
+    status_details: StatusDetails,
     fleetConfigurationArnForStatus: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ComponentStatusDetails {
-    componentName: String,
+    component_name: String,
 
     version: String,
 
-    fleetConfigArns: Vec<String>,
+    fleetconfig_arns: Vec<String>,
 
-    statusDetails: String,
+    status_details: String,
 
     // We need to add this since during serialization, the 'is' is removed.
-    isRoot: bool,
+    is_root: bool,
 
     status: dependency::State,
 }
 
 pub const FLEET_STATUS_SERVICE_TOPICS: &str = "FleetStatusService";
 pub const DEFAULT_FLEET_STATUS_SERVICE_PUBLISH_TOPIC: &str =
-    "$aws/things/{thingName}/greengrassv2/health/json";
+    "$aws/things/{thing_name}/greengrassv2/health/json";
 pub const FLEET_STATUS_TEST_PERIODIC_UPDATE_INTERVAL_SEC: &str = "fssPeriodicUpdateIntervalSec";
 pub const DEFAULT_PERIODIC_PUBLISH_INTERVAL_SEC: usize = 86_400;
 pub const FLEET_STATUS_PERIODIC_PUBLISH_INTERVAL_SEC: &str = "periodicStatusPublishIntervalSeconds";
@@ -150,8 +153,8 @@ pub struct FleetStatusService {
     // DeviceConfiguration deviceConfiguration;
     // GlobalStateChangeListener handleServiceStateChange = this::handleServiceStateChange,
     // Function<Map<String, Object>, Boolean> deploymentStatusChanged = this::deploymentStatusChanged,
-    updateTopic: String,
-    thingName: String,
+    update_topic: String,
+    thing_name: String,
     // MqttClient mqttClient,
     // Kernel kernel,
     architecture: String,
@@ -168,7 +171,7 @@ pub struct FleetStatusService {
     // ConcurrentHashMap<GreengrassService, Instant> serviceFssTracksMap = new ConcurrentHashMap<>(),
     // AtomicBoolean isDeploymentInProgress = new AtomicBoolean(false),
     // Object periodicUpdateInProgressLock = new Object(),
-    periodicPublishIntervalSec: usize,
+    // periodicPublishIntervalSec: usize,
     // ScheduledFuture<?> periodicUpdateFuture,
 }
 
@@ -183,7 +186,7 @@ pub fn upload_fss_data(
     //     return;
     // }
     let mut components: ComponentStatusDetails;
-    let sequenceNumber: usize;
+    let sequence_number: usize;
 
     // synchronized (greengrassServiceSet)
 
