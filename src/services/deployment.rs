@@ -195,8 +195,8 @@ async fn component_deploy(name: String, version: String) -> Result<()> {
     let region = v[2];
     // println!("region:{}", region);
 
-    let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
-        .or_default_provider();
+    let region_provider =
+        RegionProviderChain::first_try(Region::new(region.to_string())).or_default_provider();
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let ggv2_client = Greengrassv2_Client::new(&shared_config);
     let s3_client = S3_Client::new(&shared_config);

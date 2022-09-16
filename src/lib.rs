@@ -25,8 +25,8 @@ pub struct Args {
 
     // (Optional) The path to the folder to use as the root for the AWS IoT Greengrass Core
     // software.
-    #[clap(long)]
-    pub root: Option<String>,
+    #[clap(long, default_value = ".")]
+    pub root: std::path::PathBuf,
 
     // (Optional) The path to the configuration file that you use to run the AWS
     // IoT Greengrass Core software

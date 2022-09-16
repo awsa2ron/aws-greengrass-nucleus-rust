@@ -1,4 +1,3 @@
-
 use anyhow::{Error, Result};
 use aws_greengrass_nucleus::{config, easysetup, mqtt, services::deployment, Args};
 use aws_iot_device_sdk::{shadow, *};

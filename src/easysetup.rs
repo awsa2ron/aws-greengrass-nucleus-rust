@@ -124,8 +124,9 @@ async fn provision(args: &Args) -> Result<()> {
     let region = &args.aws_region;
     let policy = &args.thing_policy_name;
     let group = &args.thing_group_name;
-    let role = args.tes_role_name;
-    let role_alias = args.tes_role_alias_name;
+    let role = &args.tes_role_name;
+    let role_alias = &args.tes_role_alias_name;
+    let dev = args.deploy_dev_tools;
 
     info!(
         "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
@@ -143,15 +144,18 @@ async fn provision(args: &Args) -> Result<()> {
     }
 
     info!("Setting up resources for %s ... %n");
-    setupIoTRoleForTes(&role, role_alias, "certificateArn".to_string());
+    setupIoTRoleForTes(&role, role_alias, "certificateArn");
     createAndAttachRolePolicy(&role, &region);
     info!("Configuring Nucleus with provisioned resource details...");
-    updateKernelConfigWithIotConfiguration(thing).await;
+    updateKernelConfigWithIotConfiguration(&thing).await;
     info!("Successfully configured Nucleus with provisioned resource details!");
+    if dev {
+        createInitialDeploymentIfNeeded(&thing, group.as_deref(), "cliVersion");
+    }
     Ok(())
 }
 
-async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
+async fn updateKernelConfigWithIotConfiguration(thing: &ThingInfo) {
     // rootDir = kernel.getNucleusPaths().rootPath();
     // let rootDir = Path::new("/greengrass/v2");
     let rootDir = Path::new(".");
@@ -178,8 +182,8 @@ async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
  * @return created thing info
  */
 async fn createThing(thing_name: &str, region: &str, policy: &str) -> Result<ThingInfo> {
-    let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
-        .or_default_provider();
+    let region_provider =
+        RegionProviderChain::first_try(Region::new(region.to_string())).or_default_provider();
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&shared_config);
     // Find or create IoT policy
@@ -284,7 +288,7 @@ fn addThingToGroup(thing_name: &str, thingGroupName: &str) {}
  * @param roleAliasName  roleAlias name
  * @param certificate_arn certificate arn for the IoT thing
  */
-pub fn setupIoTRoleForTes(roleName: &str, roleAliasName: String, certificate_arn: String) {}
+pub fn setupIoTRoleForTes(roleName: &str, roleAliasName: &str, certificate_arn: &str) {}
 
 /**
  * Creates IAM policy using specified name and document. Attach the policy to given IAM role name.
@@ -294,3 +298,17 @@ pub fn setupIoTRoleForTes(roleName: &str, roleAliasName: String, certificate_arn
  * @return ARN of created policy
  */
 pub fn createAndAttachRolePolicy(roleName: &str, region: &str) {}
+
+/**
+ * Creates an initial deployment to deploy dev tools like the Greengrass CLI component.
+ *
+ * @param thingInfo thing info for the device
+ * @param thingGroupName thing group name
+ * @param cliVersion CLI version to install
+ */
+pub fn createInitialDeploymentIfNeeded(
+    thingInfo: &ThingInfo,
+    thingGroupName: Option<&str>,
+    cliVersion: &str,
+) {
+}
