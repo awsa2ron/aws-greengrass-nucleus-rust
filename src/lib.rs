@@ -10,10 +10,11 @@ pub mod services;
 
 // pub use self::easysetup::perform_setup;
 pub use self::mqtt::publish;
-pub use self::services::status::upload_fss_data as fleet_status;
 pub use self::services::kernel::VERSION as ggcVersion;
+pub use self::services::status::upload_fss_data as fleet_status;
 
 use clap::Parser;
+
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 pub struct Args {
@@ -23,28 +24,27 @@ pub struct Args {
     pub aws_region: String,
 
     // (Optional) The path to the folder to use as the root for the AWS IoT Greengrass Core
-    // software. Defaults to ~/.greengrass.
-    #[clap(long, default_value = "/greengrass/v2")]
-    pub root: String,
+    // software.
+    #[clap(long, default_value = ".")]
+    pub root: std::path::PathBuf,
 
     // (Optional) The path to the configuration file that you use to run the AWS
     // IoT Greengrass Core software
-    // software. Defaults to ~/.greengrass
-    #[clap(long, default_value = "~/.greengrass")]
-    pub init_config: String,
+    #[clap(long, default_value = "config/config.yaml")]
+    pub init_config: std::path::PathBuf,
 
     // (Optional) Specify true or false. If true, the AWS IoT Greengrass Core software registers this
     // device as an AWS IoT thing, and provisions the AWS resources that the software requires. The
     // software provisions an AWS IoT thing, (optional) an AWS IoT thing group, a Thing Policy, an
     // IAM role, and an AWS IoT role alias. Defaults to false.
-    #[clap(long)]
+    #[clap(long, action = clap::ArgAction::Set, default_value_t=false)]
     pub provision: bool,
 
-    // (Optional) The name of the AWS IoT thing that you register as this core device.
+    // The name of the AWS IoT thing that you register as this core device.
     // If the thing with
     // this name doesn't exist in your AWS account, the AWS IoT Greengrass Core software creates it.
-    //Defaults to GreengrassV2IotThing_ plus a random UUID.
-    #[clap(short, long)]
+    // Defaults to GreengrassV2IotThing_ plus a random UUID.
+    #[clap(short, long, default_value = "GreengrassV2IotThing_random_uuid")]
     pub thing_name: String,
 
     // (Optional) The name of the AWS IoT thing group where you add this core
@@ -85,7 +85,7 @@ pub struct Args {
     // itself up as a system service that runs when this device boots. The system service name is "
     // greengrass.
     // Defaults to false.
-    #[clap(long)]
+    #[clap(long, action = clap::ArgAction::Set, default_value_t=false)]
     pub setup_system_service: bool,
 
     // (Optional) The name of ID of the system user and group that the AWS IoT Greengrass Core
@@ -106,13 +106,13 @@ pub struct Args {
     // deploys the Greengrass CLI component. Specify true to set up this core
     // device for local development. Specify false to set up this core device in a production
     // environment. Defaults to false.
-    #[clap(long)]
+    #[clap(long, action = clap::ArgAction::Set, default_value_t=false)]
     pub deploy_dev_tools: bool,
 
     // (Optional) Specify true or false. If true, the AWS IoT Greengrass Core software runs setup steps,
     // (optional) provisions resources, and starts the software. If false, the software runs only setup
     // steps and (optional) provisions resources. Defaults to true.
-    #[clap(long)]
+    #[clap(long, action = clap::ArgAction::Set, default_value_t=true)]
     pub start: bool,
 
     // (Optional) Path of a plugin jar file. The plugin will be included as "

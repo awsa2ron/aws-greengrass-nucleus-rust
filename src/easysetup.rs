@@ -104,7 +104,7 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<()> {
 
 pub async fn perform_setup(mqtt_client: &AsyncClient, args: &Args) -> Result<()> {
     if args.provision {
-        provision(&args.thing_name, &args.aws_region, &args.thing_policy_name).await?;
+        provision(&args).await?;
 
         let topic = format!("$aws/things/{}/greengrassv2/health/json", &args.thing_name);
         let payload = json!(services::status::upload_fss_data(&args.thing_name)).to_string();
@@ -119,24 +119,43 @@ pub async fn perform_setup(mqtt_client: &AsyncClient, args: &Args) -> Result<()>
     Ok(())
 }
 
-async fn provision(name: &str, region: &str, policy_name: &str) -> Result<()> {
+async fn provision(args: &Args) -> Result<()> {
+    let name = &args.thing_name;
+    let region = &args.aws_region;
+    let policy = &args.thing_policy_name;
+    let group = &args.thing_group_name;
+    let role = &args.tes_role_name;
+    let role_alias = &args.tes_role_alias_name;
+    let dev = args.deploy_dev_tools;
+
     info!(
         "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
         name
     );
-    let thing = createThing(name, region, policy_name).await?;
+    let thing = createThing(name, region, policy).await?;
     info!(
         "Successfully provisioned AWS IoT resources for the device with IoT Thing Name: {}",
         name
     );
+    if let Some(group) = group {
+        info!("Adding IoT Thing {} into Thing Group: {}...", name, name);
+        addThingToGroup(name, name);
+        info!("Successfully added Thing into Thing Group: {}", name);
+    }
+
     info!("Setting up resources for %s ... %n");
+    setupIoTRoleForTes(&role, role_alias, "certificateArn");
+    createAndAttachRolePolicy(&role, &region);
     info!("Configuring Nucleus with provisioned resource details...");
-    updateKernelConfigWithIotConfiguration(thing).await;
+    updateKernelConfigWithIotConfiguration(&thing).await;
     info!("Successfully configured Nucleus with provisioned resource details!");
+    if dev {
+        createInitialDeploymentIfNeeded(&thing, group.as_deref(), "cliVersion");
+    }
     Ok(())
 }
 
-async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
+async fn updateKernelConfigWithIotConfiguration(thing: &ThingInfo) {
     // rootDir = kernel.getNucleusPaths().rootPath();
     // let rootDir = Path::new("/greengrass/v2");
     let rootDir = Path::new(".");
@@ -158,24 +177,23 @@ async fn updateKernelConfigWithIotConfiguration(thing: ThingInfo) {
  * Create a thing with provided configuration.
  *
  * @param client     iotClient to use
- * @param policyName policyName
+ * @param policy policy
  * @param thing_name  thing_name
  * @return created thing info
  */
-async fn createThing(thing_name: &str, region: &str, policyName: &str) -> Result<ThingInfo> {
-    let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()))
-        .or_default_provider()
-        .or_else(Region::new("ap-southeast-1"));
+async fn createThing(thing_name: &str, region: &str, policy: &str) -> Result<ThingInfo> {
+    let region_provider =
+        RegionProviderChain::first_try(Region::new(region.to_string())).or_default_provider();
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&shared_config);
     // Find or create IoT policy
-    match client.get_policy().policy_name(policyName).send().await {
-        Ok => info!("Found IoT policy {}, reusing it", policyName),
+    match client.get_policy().policy_name(policy).send().await {
+        Ok => info!("Found IoT policy {}, reusing it", policy),
         Err(_) => {
-            info!("Creating new IoT policy {}", policyName);
+            info!("Creating new IoT policy {}", policy);
             client
                 .create_policy()
-                .policy_name(policyName)
+                .policy_name(policy)
                 .policy_document(IOT_POLICY_DOCUMENT)
                 .send()
                 .await?;
@@ -212,7 +230,7 @@ async fn createThing(thing_name: &str, region: &str, policyName: &str) -> Result
     info!("Attaching policy to certificate...");
     let _resp = client
         .attach_policy()
-        .policy_name(policyName)
+        .policy_name(policy)
         .target(certificate_arn)
         .send()
         .await?;
@@ -255,60 +273,42 @@ async fn createThing(thing_name: &str, region: &str, policyName: &str) -> Result
     Ok(thingInfo)
 }
 
-// /**
-//  * Create IoT role for using TES.
-//  *
-//  * @param roleName       rolaName
-//  * @param roleAliasName  roleAlias name
-//  * @param certificate_arn certificate arn for the IoT thing
-//  */
-// pub fn setupIoTRoleForTes(roleName: String, roleAliasName: String, certificate_arn: String) {
-//     // String roleAliasArn;
-//     // try {
-//         // Get Role Alias arn
-//         DescribeRoleAliasRequest describeRoleAliasRequest =
-//                 DescribeRoleAliasRequest.builder().roleAlias(roleAliasName).build();
-//         roleAliasArn = iotClient.describeRoleAlias(describeRoleAliasRequest).roleAliasDescription().roleAliasArn();
-//     // } catch (ResourceNotFoundException ranfe) {
-//         info!("TES role alias \"%s\" does not exist, creating new alias...%n", roleAliasName);
+/**
+ * Add an existing Thing into a Thing Group which may or may not exist,
+ * creates thing group if it doesn't exist.
+ *
+ * @param thingName      thing name
+ * @param thingGroupName group to add the thing into
+ */
+fn addThingToGroup(thing_name: &str, thingGroupName: &str) {}
+/**
+ * Create IoT role for using TES.
+ *
+ * @param roleName       rolaName
+ * @param roleAliasName  roleAlias name
+ * @param certificate_arn certificate arn for the IoT thing
+ */
+pub fn setupIoTRoleForTes(roleName: &str, roleAliasName: &str, certificate_arn: &str) {}
 
-//         // Get IAM role arn in order to attach an alias to it
-//         String roleArn;
-//         try {
-//             GetRoleRequest getRoleRequest = GetRoleRequest.builder().roleName(roleName).build();
-//             roleArn = iamClient.getRole(getRoleRequest).role().arn();
-//         } catch (NoSuchEntityException | ResourceNotFoundException rnfe) {
-//             info!("TES role \"%s\" does not exist, creating role...%n", roleName);
-//             CreateRoleRequest createRoleRequest = CreateRoleRequest.builder().roleName(roleName).description(
-//                     "Role for Greengrass IoT things to interact with AWS services using token exchange service")
-//                     .assumeRolePolicyDocument("{\n  \"Version\": \"2012-10-17\",\n"
-//                             + "  \"Statement\": [\n    {\n      \"Effect\": \"Allow\",\n"
-//                             + "      \"Principal\": {\n       \"Service\": \"" + tesServiceEndpoints.get(envStage)
-//                             + "\"\n      },\n      \"Action\": \"sts:AssumeRole\"\n    }\n  ]\n}").build();
-//             roleArn = iamClient.createRole(createRoleRequest).role().arn();
-//         }
+/**
+ * Creates IAM policy using specified name and document. Attach the policy to given IAM role name.
+ *
+ * @param roleName  name of target role
+ * @param awsRegion aws region
+ * @return ARN of created policy
+ */
+pub fn createAndAttachRolePolicy(roleName: &str, region: &str) {}
 
-//         CreateRoleAliasRequest createRoleAliasRequest =
-//                 CreateRoleAliasRequest.builder().roleArn(roleArn).roleAlias(roleAliasName).build();
-//         roleAliasArn = iotClient.createRoleAlias(createRoleAliasRequest).roleAliasArn();
-//     // }
-
-//     // Attach policy role alias to cert
-//     String iotRolePolicyName = IOT_ROLE_POLICY_NAME_PREFIX + roleAliasName;
-//     try {
-//         iotClient.getPolicy(GetPolicyRequest.builder().policyName(iotRolePolicyName).build());
-//     } catch (ResourceNotFoundException e) {
-//         info!("IoT role policy \"%s\" for TES Role alias not exist, creating policy...%n",
-//                 iotRolePolicyName);
-//         CreatePolicyRequest createPolicyRequest = CreatePolicyRequest.builder().policyName(iotRolePolicyName)
-//                 .policyDocument("{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\": {\n"
-//                         + "\t\t\"Effect\": \"Allow\",\n\t\t\"Action\": \"iot:AssumeRoleWithCertificate\",\n"
-//                         + "\t\t\"Resource\": \"" + roleAliasArn + "\"\n\t}\n}").build();
-//         iotClient.createPolicy(createPolicyRequest);
-//     }
-
-//     outStream.println("Attaching TES role policy to IoT thing...");
-//     AttachPolicyRequest attachPolicyRequest =
-//             AttachPolicyRequest.builder().policyName(iotRolePolicyName).target(certificate_arn).build();
-//     iotClient.attachPolicy(attachPolicyRequest);
-// }
+/**
+ * Creates an initial deployment to deploy dev tools like the Greengrass CLI component.
+ *
+ * @param thingInfo thing info for the device
+ * @param thingGroupName thing group name
+ * @param cliVersion CLI version to install
+ */
+pub fn createInitialDeploymentIfNeeded(
+    thingInfo: &ThingInfo,
+    thingGroupName: Option<&str>,
+    cliVersion: &str,
+) {
+}

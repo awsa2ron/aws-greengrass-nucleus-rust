@@ -6,20 +6,19 @@ use rumqttc::{self, Event, Packet, Publish};
 use tokio::sync::mpsc;
 use tracing_subscriber;
 
-const CONFIG_FILE: &str = "./config/config.yaml";
-
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let args = Args::parse();
 
     tracing_subscriber::fmt::init();
-    config::init(CONFIG_FILE);
+    config::init(&args.init_config);
     let (mqtt_client, mut eventloop) = mqtt::init(&args.thing_name)?;
     easysetup::perform_setup(&mqtt_client, &args).await?;
     deployment::connect_shadow(&mqtt_client, &args.thing_name).await?;
 
     let (tx, mut rx) = mpsc::channel(128);
-    loop {
+    println!("Starting...");
+    while args.start {
         tokio::select! {
             Ok(event) = eventloop.poll() => { process(event, tx.clone()).await; }
             Some(msg) = rx.recv() => {
@@ -30,9 +29,10 @@ async fn main() -> Result<(), Error> {
             }
         }
     }
+    Ok(())
 }
 
-async fn process(event: Event, tx: mpsc::Sender<Publish>){
+async fn process(event: Event, tx: mpsc::Sender<Publish>) {
     println!("{:?}", event);
     if let Event::Incoming(Packet::Publish(v)) = event {
         match match_topic_type(&v.topic) {
