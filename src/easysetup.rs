@@ -124,6 +124,8 @@ async fn provision(args: &Args) -> Result<()> {
     let region = &args.aws_region;
     let policy = &args.thing_policy_name;
     let group = &args.thing_group_name;
+    let role = args.tes_role_name;
+    let role_alias = args.tes_role_alias_name;
 
     info!(
         "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
@@ -141,6 +143,8 @@ async fn provision(args: &Args) -> Result<()> {
     }
 
     info!("Setting up resources for %s ... %n");
+    setupIoTRoleForTes(&role, role_alias, "certificateArn".to_string());
+    createAndAttachRolePolicy(&role, &region);
     info!("Configuring Nucleus with provisioned resource details...");
     updateKernelConfigWithIotConfiguration(thing).await;
     info!("Successfully configured Nucleus with provisioned resource details!");
@@ -273,60 +277,20 @@ async fn createThing(thing_name: &str, region: &str, policy: &str) -> Result<Thi
  * @param thingGroupName group to add the thing into
  */
 fn addThingToGroup(thing_name: &str, thingGroupName: &str) {}
-// /**
-//  * Create IoT role for using TES.
-//  *
-//  * @param roleName       rolaName
-//  * @param roleAliasName  roleAlias name
-//  * @param certificate_arn certificate arn for the IoT thing
-//  */
-// pub fn setupIoTRoleForTes(roleName: String, roleAliasName: String, certificate_arn: String) {
-//     // String roleAliasArn;
-//     // try {
-//         // Get Role Alias arn
-//         DescribeRoleAliasRequest describeRoleAliasRequest =
-//                 DescribeRoleAliasRequest.builder().roleAlias(roleAliasName).build();
-//         roleAliasArn = iotClient.describeRoleAlias(describeRoleAliasRequest).roleAliasDescription().roleAliasArn();
-//     // } catch (ResourceNotFoundException ranfe) {
-//         info!("TES role alias \"%s\" does not exist, creating new alias...%n", roleAliasName);
+/**
+ * Create IoT role for using TES.
+ *
+ * @param roleName       rolaName
+ * @param roleAliasName  roleAlias name
+ * @param certificate_arn certificate arn for the IoT thing
+ */
+pub fn setupIoTRoleForTes(roleName: &str, roleAliasName: String, certificate_arn: String) {}
 
-//         // Get IAM role arn in order to attach an alias to it
-//         String roleArn;
-//         try {
-//             GetRoleRequest getRoleRequest = GetRoleRequest.builder().roleName(roleName).build();
-//             roleArn = iamClient.getRole(getRoleRequest).role().arn();
-//         } catch (NoSuchEntityException | ResourceNotFoundException rnfe) {
-//             info!("TES role \"%s\" does not exist, creating role...%n", roleName);
-//             CreateRoleRequest createRoleRequest = CreateRoleRequest.builder().roleName(roleName).description(
-//                     "Role for Greengrass IoT things to interact with AWS services using token exchange service")
-//                     .assumeRolePolicyDocument("{\n  \"Version\": \"2012-10-17\",\n"
-//                             + "  \"Statement\": [\n    {\n      \"Effect\": \"Allow\",\n"
-//                             + "      \"Principal\": {\n       \"Service\": \"" + tesServiceEndpoints.get(envStage)
-//                             + "\"\n      },\n      \"Action\": \"sts:AssumeRole\"\n    }\n  ]\n}").build();
-//             roleArn = iamClient.createRole(createRoleRequest).role().arn();
-//         }
-
-//         CreateRoleAliasRequest createRoleAliasRequest =
-//                 CreateRoleAliasRequest.builder().roleArn(roleArn).roleAlias(roleAliasName).build();
-//         roleAliasArn = iotClient.createRoleAlias(createRoleAliasRequest).roleAliasArn();
-//     // }
-
-//     // Attach policy role alias to cert
-//     String iotRolePolicyName = IOT_ROLE_POLICY_NAME_PREFIX + roleAliasName;
-//     try {
-//         iotClient.getPolicy(GetPolicyRequest.builder().policy(iotRolePolicyName).build());
-//     } catch (ResourceNotFoundException e) {
-//         info!("IoT role policy \"%s\" for TES Role alias not exist, creating policy...%n",
-//                 iotRolePolicyName);
-//         CreatePolicyRequest createPolicyRequest = CreatePolicyRequest.builder().policy(iotRolePolicyName)
-//                 .policyDocument("{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\": {\n"
-//                         + "\t\t\"Effect\": \"Allow\",\n\t\t\"Action\": \"iot:AssumeRoleWithCertificate\",\n"
-//                         + "\t\t\"Resource\": \"" + roleAliasArn + "\"\n\t}\n}").build();
-//         iotClient.createPolicy(createPolicyRequest);
-//     }
-
-//     outStream.println("Attaching TES role policy to IoT thing...");
-//     AttachPolicyRequest attachPolicyRequest =
-//             AttachPolicyRequest.builder().policy(iotRolePolicyName).target(certificate_arn).build();
-//     iotClient.attachPolicy(attachPolicyRequest);
-// }
+/**
+ * Creates IAM policy using specified name and document. Attach the policy to given IAM role name.
+ *
+ * @param roleName  name of target role
+ * @param awsRegion aws region
+ * @return ARN of created policy
+ */
+pub fn createAndAttachRolePolicy(roleName: &str, region: &str) {}
