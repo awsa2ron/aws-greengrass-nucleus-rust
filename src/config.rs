@@ -53,6 +53,7 @@ pub struct Kernel {
     pub configuration: Value,
     pub dependencies: Value,
     pub lifecycle: Value,
+    #[serde(skip_deserializing)] 
     pub previousVersion: String,
     pub version: String,
 }
