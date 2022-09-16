@@ -5,14 +5,16 @@ use anyhow::Ok;
 use aws_config::meta::region::RegionProviderChain;
 // use greengrassv2 as ggv2;
 use once_cell::sync::OnceCell;
+use serde::Deserialize;
 use tracing::{debug, event, info, span, Level};
 
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
 pub struct SystemConfiguration {
-    pub certificate_path: PathBuf,
-    pub private_key_path: PathBuf,
-    pub rootCA_path: PathBuf,
-    thing_name: String,
+    pub certificateFilePath: PathBuf,
+    pub privateKeyPath: PathBuf,
+    pub rootCaPath: PathBuf,
+    pub rootpath: PathBuf,
+    thingName: String,
 }
 
 pub static SYSCONFIG: OnceCell<SystemConfiguration> = OnceCell::new();
@@ -24,16 +26,18 @@ impl SystemConfiguration {
             .expect("System configuration is not initialized")
     }
     fn update(
-        thing_name: String,
-        certificate_path: PathBuf,
-        private_key_path: PathBuf,
-        rootCA_path: PathBuf,
+        thingName: String,
+        certificateFilePath: PathBuf,
+        privateKeyPath: PathBuf,
+        rootCaPath: PathBuf,
+        rootpath: PathBuf,
     ) -> Result<SystemConfiguration, anyhow::Error> {
         let ret = SystemConfiguration {
-            certificate_path,
-            private_key_path,
-            rootCA_path,
-            thing_name,
+            certificateFilePath,
+            privateKeyPath,
+            rootCaPath,
+            rootpath,
+            thingName,
         };
         Ok(ret)
     }
@@ -45,10 +49,11 @@ impl SystemConfiguration {
  * @param updateBehavior Update behavior indicating either merge or replace
  */
 pub fn updateSystemConfiguration(
-    thing_name: &str,
+    thingName: &str,
     caFilePath: PathBuf,
     privKeyFilePath: PathBuf,
     certFilePath: PathBuf,
+    rootpath: PathBuf,
 ) {
     //   @NonNull UpdateBehaviorTree.UpdateBehavior updateBehavior) {
     // Map<String, Object> updateMap = new HashMap<>();
@@ -68,10 +73,11 @@ pub fn updateSystemConfiguration(
     // Topics systemConfig = kernel.getConfig().lookupTopics(SYSTEM_NAMESPACE_KEY);
     // systemConfig.updateFromMap(updateMap, new UpdateBehaviorTree(updateBehavior, System.currentTimeMillis()));
     let sysConfig = SystemConfiguration::update(
-        thing_name.to_string(),
+        thingName.to_string(),
         certFilePath,
         privKeyFilePath,
         caFilePath,
+        rootpath,
     )
     .unwrap();
     SYSCONFIG.set(sysConfig).unwrap();

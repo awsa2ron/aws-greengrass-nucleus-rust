@@ -13,7 +13,7 @@ use aws_sdk_iot::{model::KeyPair, Client};
 use aws_types::region::Region;
 use rumqttc::{AsyncClient, ClientError, QoS};
 use serde_json::json;
-use std::fs;
+use std::{fs, path::PathBuf};
 use std::path::Path;
 use tracing::{debug, event, info, span, Level};
 
@@ -158,7 +158,7 @@ async fn provision(args: &Args) -> Result<()> {
 async fn updateKernelConfigWithIotConfiguration(thing: &ThingInfo) {
     // rootDir = kernel.getNucleusPaths().rootPath();
     // let rootDir = Path::new("/greengrass/v2");
-    let rootDir = Path::new(".");
+    let rootDir = PathBuf::new();
     let caFilePath = rootDir.join("rootCA.pem");
     let privKeyFilePath = rootDir.join("privKey.key");
     let certFilePath = rootDir.join("thingCert.crt");
@@ -170,6 +170,7 @@ async fn updateKernelConfigWithIotConfiguration(thing: &ThingInfo) {
         caFilePath,
         privKeyFilePath,
         certFilePath,
+        rootDir,
     );
 }
 

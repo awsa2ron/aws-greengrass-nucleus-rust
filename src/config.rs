@@ -3,10 +3,13 @@ use serde::Deserialize;
 use std::fs;
 use std::path::Path;
 
+use crate::provisioning;
+
 #[derive(Deserialize, Debug)]
 pub struct Config {
     pub id: String,
     pub endpoint: Endpoint,
+    system: provisioning::SystemConfiguration,
     // pub certificates: Certificates,
 }
 

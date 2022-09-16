@@ -1,0 +1,11 @@
+id:
+  111111111111
+endpoint:
+  iot: <account-id>.iot.<region>.amazonaws.com
+  iot_ats: <account-id>-ats.iot.<region>.amazonaws.com
+system:
+  certificateFilePath: "/greengrass/v2/thingCert.crt"
+  privateKeyPath: "/greengrass/v2/privKey.key"
+  rootCaPath: "/greengrass/v2/rootCA.pem"
+  rootpath: "/greengrass/v2"
+  thingName: "GreengrassV2IotThing_random_uuid"
