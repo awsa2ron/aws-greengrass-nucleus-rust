@@ -8,10 +8,8 @@ use crate::provisioning;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
-    pub id: String,
-    pub endpoint: Endpoint,
-    system: provisioning::SystemConfiguration,
-    services: Services,
+    pub system: provisioning::SystemConfiguration,
+    pub services: Services,
     // pub certificates: Certificates,
 }
 
@@ -29,13 +27,7 @@ impl Config {
         Ok(config)
     }
 }
-#[derive(Deserialize, Debug)]
-pub struct Endpoint {
-    pub iot: String,
-    pub iot_ats: String,
-    // pub credential: String,
-    // pub jobs: String,
-}
+
 #[derive(Deserialize, Debug)]
 pub struct Certificates {
     pub ca: String,
@@ -53,7 +45,7 @@ pub fn init(path: &Path) {
 #[derive(Deserialize, Debug)]
 pub struct Services {
     #[serde(rename = "aws.greengrass.Nucleus")]
-    kernel: Kernel,
+    pub kernel: Kernel,
 }
 #[derive(Deserialize, Debug)]
 pub struct Kernel {

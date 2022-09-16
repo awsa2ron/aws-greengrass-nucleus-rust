@@ -1,8 +1,5 @@
 id:
   111111111111
-endpoint:
-  iot: <account-id>.iot.<region>.amazonaws.com
-  iot_ats: <account-id>-ats.iot.<region>.amazonaws.com
 system:
   certificateFilePath: "/greengrass/v2/thingCert.crt"
   privateKeyPath: "/greengrass/v2/privKey.key"

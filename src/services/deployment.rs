@@ -189,14 +189,13 @@ pub async fn shadow_deployment(v: Publish, tx: Sender<Publish>) -> Result<()> {
 async fn component_deploy(name: String, version: String) -> Result<()> {
     // println!("{}:{}", name, version);
 
-    let id = &config::Config::global().id;
-    let endpoint = &config::Config::global().endpoint.iot_ats;
-    let v: Vec<&str> = endpoint.split('.').collect();
-    let region = v[2];
+    let id = "xxxxxxxx";
+
+    let region = config::Config::global().services.kernel.configuration["awsRegion"].as_str().unwrap();
     // println!("region:{}", region);
 
     let region_provider =
-        RegionProviderChain::first_try(Region::new(region.to_string())).or_default_provider();
+        RegionProviderChain::first_try(Region::new(region)).or_default_provider();
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let ggv2_client = Greengrassv2_Client::new(&shared_config);
     let s3_client = S3_Client::new(&shared_config);
