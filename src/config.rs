@@ -1,5 +1,6 @@
 use once_cell::sync::OnceCell;
 use serde::Deserialize;
+use serde_yaml::{Value};
 use std::fs;
 use std::path::Path;
 
@@ -10,6 +11,7 @@ pub struct Config {
     pub id: String,
     pub endpoint: Endpoint,
     system: provisioning::SystemConfiguration,
+    services: Services,
     // pub certificates: Certificates,
 }
 
@@ -46,6 +48,21 @@ pub fn init(path: &Path) {
         Config::from_config_file(path).expect("Something went wrong reading config file");
 
     CONFIG.set(_config).unwrap();
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Services {
+    #[serde(rename = "aws.greengrass.Nucleus")]
+    kernel: Kernel,
+}
+#[derive(Deserialize, Debug)]
+pub struct Kernel {
+    pub componentType: String,
+    pub configuration: Value,
+    pub dependencies: Value,
+    pub lifecycle: Value,
+    pub previousVersion: String,
+    pub version: String,
 }
 
 // #[cfg(test)]
