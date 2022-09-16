@@ -13,8 +13,6 @@ Cargo.lock
 # Added by cargo
 
 /target
-config.json
-config.yaml
 config/*
 privKey.key
 rootCA.pem
