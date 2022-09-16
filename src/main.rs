@@ -18,7 +18,8 @@ async fn main() -> Result<(), Error> {
     deployment::connect_shadow(&mqtt_client, &args.thing_name).await?;
 
     let (tx, mut rx) = mpsc::channel(128);
-        loop {
+    println!("Starting...");
+    while args.start {
         tokio::select! {
             Ok(event) = eventloop.poll() => { process(event, tx.clone()).await; }
             Some(msg) = rx.recv() => {
@@ -29,6 +30,7 @@ async fn main() -> Result<(), Error> {
             }
         }
     }
+    Ok(())
 }
 
 async fn process(event: Event, tx: mpsc::Sender<Publish>) {

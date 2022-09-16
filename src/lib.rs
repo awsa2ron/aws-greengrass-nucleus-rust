@@ -37,7 +37,7 @@ pub struct Args {
     // device as an AWS IoT thing, and provisions the AWS resources that the software requires. The
     // software provisions an AWS IoT thing, (optional) an AWS IoT thing group, a Thing Policy, an
     // IAM role, and an AWS IoT role alias. Defaults to false.
-    #[clap(long)]
+    #[clap(long, action = clap::ArgAction::Set, default_value_t=false)]
     pub provision: bool,
 
     // The name of the AWS IoT thing that you register as this core device.
@@ -85,7 +85,7 @@ pub struct Args {
     // itself up as a system service that runs when this device boots. The system service name is "
     // greengrass.
     // Defaults to false.
-    #[clap(long)]
+    #[clap(long, action = clap::ArgAction::Set, default_value_t=false)]
     pub setup_system_service: bool,
 
     // (Optional) The name of ID of the system user and group that the AWS IoT Greengrass Core
@@ -106,13 +106,13 @@ pub struct Args {
     // deploys the Greengrass CLI component. Specify true to set up this core
     // device for local development. Specify false to set up this core device in a production
     // environment. Defaults to false.
-    #[clap(long)]
+    #[clap(long, action = clap::ArgAction::Set, default_value_t=false)]
     pub deploy_dev_tools: bool,
 
     // (Optional) Specify true or false. If true, the AWS IoT Greengrass Core software runs setup steps,
     // (optional) provisions resources, and starts the software. If false, the software runs only setup
     // steps and (optional) provisions resources. Defaults to true.
-    #[clap(long)]
+    #[clap(long, action = clap::ArgAction::Set, default_value_t=true)]
     pub start: bool,
 
     // (Optional) Path of a plugin jar file. The plugin will be included as "
