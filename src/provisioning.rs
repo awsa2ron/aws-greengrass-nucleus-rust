@@ -14,7 +14,7 @@ pub struct SystemConfiguration {
     pub privateKeyPath: PathBuf,
     pub rootCaPath: PathBuf,
     pub rootpath: PathBuf,
-    thingName: String,
+    pub thingName: String,
 }
 
 pub static SYSCONFIG: OnceCell<SystemConfiguration> = OnceCell::new();

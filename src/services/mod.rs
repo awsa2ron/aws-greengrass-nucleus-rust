@@ -1,3 +1,8 @@
+use anyhow::{Context, Error, Ok, Result};
+use clap::Args;
+use rumqttc::Publish;
+use tokio::sync::mpsc;
+
 pub mod deployment;
 pub mod kernel;
 pub mod main;
@@ -59,13 +64,15 @@ use policy::Policy;
 use status::Status;
 use telemetry::Telemetry;
 
-pub fn start_services() {
+pub async fn start_services(tx: mpsc::Sender<Publish>) -> Result<()> {
     Kernel::enable();
     Main::enable();
     Policy::enable();
     Deployments::enable();
     Telemetry::enable();
     Status::enable();
+    status::upload_fss_data(tx).await?;
+    Ok(())
 }
 #[cfg(test)]
 mod tests {

@@ -46,8 +46,17 @@
 //!       periodicUpdateIntervalSec: 86400
 //! ```
 
-use crate::dependency;
+use crate::{config, dependency};
+use anyhow::{Context, Error, Ok, Result};
+use bytes::Bytes;
+use clap::Args;
+use rumqttc::{Publish, QoS};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use tokio::{
+    sync::mpsc,
+    time::{sleep, Duration},
+};
 use tracing::{debug, event, info, span, Level};
 
 use crate::services::{Service, SERVICES};
@@ -62,6 +71,34 @@ impl Service for Status {
     fn enable() {
         SERVICES.insert(NAME.to_string(), Self::new(NAME, VERSION));
     }
+}
+
+#[doc(alias = "uploadFleetStatusServiceData")]
+pub async fn upload_fss_data(tx: mpsc::Sender<Publish>) -> Result<()> {
+    let name = config::Config::global().system.thingName.as_str();
+
+    tokio::spawn(async move {
+        loop {
+            // println!("status service.");
+            let topic = format!("$aws/things/{}/greengrassv2/health/json", name);
+            let payload = json!(fss_data(name)).to_string();
+            info!(
+                event = "fss-status-update-published",
+                "Status update published to FSS"
+            );
+            tx.send(Publish {
+                dup: false,
+                qos: QoS::AtMostOnce,
+                retain: false,
+                pkid: 0,
+                topic: topic.to_string(),
+                payload: Bytes::from(payload.to_string()),
+            })
+            .await;
+            sleep(Duration::from_secs(86400)).await;
+        }
+    });
+    Ok(())
 }
 
 // implements Chunkable<ComponentStatusDetails>
@@ -175,8 +212,7 @@ pub struct FleetStatusService {
     // ScheduledFuture<?> periodicUpdateFuture,
 }
 
-#[doc(alias = "uploadFleetStatusServiceData")]
-pub fn upload_fss_data(
+pub fn fss_data(
     name: &str, // overAllStatus: OverallStatus,
                 // deploymentInformation: DeploymentInformation,
 ) -> FleetStatusDetails {
@@ -205,10 +241,6 @@ pub fn upload_fss_data(
 
     // util::publish(client, "hello/world") // easysetup::createThing(client, &name, &name),
     // publisher.publish(fleetStatusDetails, components);
-    info!(
-        event = "fss-status-update-published",
-        "Status update published to FSS"
-    );
 
     // println!("{}", json!(payload));
     payload
