@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use anyhow::{Context, Ok, bail};
+use anyhow::{bail, Context, Ok};
 use anyhow::{Error, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_iot_device_sdk::shadow;
@@ -187,18 +187,22 @@ pub async fn shadow_deployment(v: Publish, tx: Sender<Publish>) -> Result<()> {
 }
 
 async fn component_deploy(name: String, version: String) -> Result<()> {
-    let region = config::Config::global().services.kernel.configuration.awsRegion.as_str();
-    let region_provider =
-        RegionProviderChain::first_try(Region::new(region)).or_default_provider();
+    let region = config::Config::global()
+        .services
+        .kernel
+        .configuration
+        .awsRegion
+        .as_str();
+    let region_provider = RegionProviderChain::first_try(Region::new(region)).or_default_provider();
     let shared_config = aws_config::from_env().region(region_provider).load().await;
     let ggv2_client = Greengrassv2_Client::new(&shared_config);
     let s3_client = S3_Client::new(&shared_config);
 
     // 1. list-components
     let arn = list_components(&ggv2_client, &name).await?;
-    println!("component arn is {arn}");
+    // 1.1. list-component-version
+    let arn = list_component_version(&ggv2_client, &arn, &version).await?;
     // 2. get-component to get recipe.
-    // arn:aws:greengrass:{region}:{id}:components:{name}:versions:{version}"
     let recipe = get_component(&ggv2_client, &arn).await?;
     // 3. get-s3 for private component.
     println!("{}", recipe["Manifests"][0]["Artifacts"][0]["Uri"]);
@@ -212,12 +216,26 @@ async fn component_deploy(name: String, version: String) -> Result<()> {
 async fn list_components(client: &Greengrassv2_Client, name: &str) -> Result<String, Error> {
     let resp = client.list_components().send().await?;
 
-    println!("cores:");
-
     for component in resp.components().unwrap() {
-        if name == component.component_name().unwrap() {return Ok(component.latest_version().unwrap().arn().unwrap().to_string())}
+        if name == component.component_name().unwrap() {
+            return Ok(component.arn().unwrap().to_string());
+        }
     }
-    bail!("Missing attribute")
+    bail!("No such component.")
+}
+async fn list_component_version(
+    client: &Greengrassv2_Client,
+    arn: &str,
+    version: &str,
+) -> Result<String, Error> {
+    let resp = client.list_component_versions().arn(arn).send().await?;
+
+    for i in resp.component_versions().unwrap() {
+        if version == i.component_version().unwrap() {
+            return Ok(i.arn().unwrap().to_string());
+        }
+    }
+    bail!("No such component version.")
 }
 
 async fn get_component(client: &Greengrassv2_Client, arn: &str) -> Result<Value, Error> {
