@@ -1,3 +1,4 @@
+--- # init config
 system:
   certificateFilePath: "/greengrass/v2/thingCert.crt"
   privateKeyPath: "/greengrass/v2/privKey.key"

@@ -57,7 +57,12 @@ pub async fn publish<'a>(
 }
 
 pub fn init(name: &str) -> Result<(AsyncClient, EventLoop), Error> {
-    let endpoint = config::Config::global().services.kernel.configuration.iotDataEndpoint.as_str();
+    let endpoint = config::Config::global()
+        .services
+        .kernel
+        .configuration
+        .iot_data_endpoint
+        .as_str();
     // info!("Endpoint: {}", endpoint);
 
     let root_dir = Path::new(".");

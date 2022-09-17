@@ -191,7 +191,7 @@ async fn component_deploy(name: String, version: String) -> Result<()> {
         .services
         .kernel
         .configuration
-        .awsRegion
+        .region
         .as_str();
     let region_provider = RegionProviderChain::first_try(Region::new(region)).or_default_provider();
     let shared_config = aws_config::from_env().region(region_provider).load().await;

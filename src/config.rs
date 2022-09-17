@@ -1,6 +1,6 @@
 use once_cell::sync::OnceCell;
 use serde::Deserialize;
-use serde_yaml::{Value};
+use serde_yaml::Value;
 use std::fs;
 use std::path::Path;
 
@@ -41,19 +41,26 @@ pub struct Services {
 }
 #[derive(Deserialize, Debug)]
 pub struct Kernel {
-    pub componentType: String,
+    #[serde(rename = "componentType")]
+    pub component: String,
     pub configuration: Configuration,
     pub dependencies: Value,
     pub version: String,
 }
 #[derive(Deserialize, Debug)]
 pub struct Configuration {
-    pub awsRegion: String,
-    pub greengrassDataPlaneEndpoint: String,
-    pub iotCredEndpoint: String,
-    pub iotDataEndpoint: String,
-    pub iotRoleAlias: String,
-    pub runWithDefault: Value,
+    #[serde(rename = "awsRegion")]
+    pub region: String,
+    #[serde(rename = "greengrassDataPlaneEndpoint")]
+    pub gg_data_plane_endpoint: String,
+    #[serde(rename = "iotCredEndpoint")]
+    pub iot_cred_endpoint: String,
+    #[serde(rename = "iotDataEndpoint")]
+    pub iot_data_endpoint: String,
+    #[serde(rename = "iotRoleAlias")]
+    pub iot_role_alias: String,
+    #[serde(rename = "runWithDefault")]
+    pub run_with_default: Value,
 }
 
 // #[cfg(test)]
