@@ -2,7 +2,8 @@ use once_cell::sync::OnceCell;
 use serde::Deserialize;
 use serde_yaml::Value;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use crate::provisioning;
 
@@ -11,6 +12,8 @@ pub struct Config {
     pub system: provisioning::SystemConfiguration,
     pub services: Services,
 }
+const CONFIG_FILE_PATH: &'static str =  "config/config.yaml";
+
 
 pub static CONFIG: OnceCell<Config> = OnceCell::new();
 
@@ -20,6 +23,7 @@ impl Config {
     }
 
     fn from_config_file(path: &Path) -> Result<Config, std::io::Error> {
+        println!("{path:#?}");
         let config = fs::read_to_string(path).expect("Something went wrong reading config file");
         let config: Config =
             serde_yaml::from_str(&config).expect("Something went wrong deserializing config file");
@@ -27,9 +31,14 @@ impl Config {
     }
 }
 
-pub fn init(path: &Path) {
+pub fn init(path_args: &Option<PathBuf>) {
+    let path = match path_args {
+        Some(path) => path.to_owned(),
+        None => PathBuf::from_str(CONFIG_FILE_PATH).unwrap(),
+    };
+
     let mut _config =
-        Config::from_config_file(path).expect("Something went wrong reading config file");
+        Config::from_config_file(&path).expect("Something went wrong reading config file");
 
     CONFIG.set(_config).unwrap();
 }
