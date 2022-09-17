@@ -191,7 +191,7 @@ async fn component_deploy(name: String, version: String) -> Result<()> {
 
     let id = "xxxxxxxx";
 
-    let region = config::Config::global().services.kernel.configuration["awsRegion"].as_str().unwrap();
+    let region = config::Config::global().services.kernel.configuration.awsRegion.as_str();
     // println!("region:{}", region);
 
     let region_provider =

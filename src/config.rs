@@ -10,7 +10,6 @@ use crate::provisioning;
 pub struct Config {
     pub system: provisioning::SystemConfiguration,
     pub services: Services,
-    // pub certificates: Certificates,
 }
 
 pub static CONFIG: OnceCell<Config> = OnceCell::new();
@@ -28,13 +27,6 @@ impl Config {
     }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct Certificates {
-    pub ca: String,
-    pub cert: String,
-    pub key: String,
-}
-
 pub fn init(path: &Path) {
     let mut _config =
         Config::from_config_file(path).expect("Something went wrong reading config file");
@@ -50,12 +42,18 @@ pub struct Services {
 #[derive(Deserialize, Debug)]
 pub struct Kernel {
     pub componentType: String,
-    pub configuration: Value,
+    pub configuration: Configuration,
     pub dependencies: Value,
-    pub lifecycle: Value,
-    #[serde(skip_deserializing)] 
-    pub previousVersion: String,
     pub version: String,
+}
+#[derive(Deserialize, Debug)]
+pub struct Configuration {
+    pub awsRegion: String,
+    pub greengrassDataPlaneEndpoint: String,
+    pub iotCredEndpoint: String,
+    pub iotDataEndpoint: String,
+    pub iotRoleAlias: String,
+    pub runWithDefault: Value,
 }
 
 // #[cfg(test)]

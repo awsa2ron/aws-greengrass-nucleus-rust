@@ -9,3 +9,5 @@ impl Service for Kernel {
         SERVICES.insert(NAME.to_string(), Self::new(NAME, VERSION));
     }
 }
+
+pub fn new() {}
