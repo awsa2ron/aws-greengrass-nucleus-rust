@@ -30,7 +30,7 @@ pub struct Args {
 
     // (Optional) The path to the configuration file that you use to run the AWS
     // IoT Greengrass Core software
-    #[clap(long, default_value = "config/effectiveConfig.yaml")]
+    #[clap(long, default_value = "config/config.yaml")]
     pub init_config: std::path::PathBuf,
 
     // (Optional) Specify true or false. If true, the AWS IoT Greengrass Core software registers this
