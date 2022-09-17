@@ -1,0 +1,21 @@
+--- # init config
+system:
+  certificateFilePath: "/greengrass/v2/thingCert.crt"
+  privateKeyPath: "/greengrass/v2/privKey.key"
+  rootCaPath: "/greengrass/v2/rootCA.pem"
+  rootpath: "/greengrass/v2"
+  thingName: "GreengrassV2IotThing_random_uuid"
+services:
+  aws.greengrass.Nucleus:
+    componentType: "NUCLEUS"
+    configuration:
+      awsRegion: "<region>"
+      greengrassDataPlaneEndpoint: ""
+      iotCredEndpoint: "xxxxxxxx.credentials.iot.<region>.amazonaws.com"
+      iotDataEndpoint: "xxxxxxxx.iot.<region>.amazonaws.com"
+      iotRoleAlias: "GreengrassV2TokenExchangeRoleAlias"
+      runWithDefault:
+        posixShell: "sh"
+        posixUser: "ggc_user:ggc_group"
+    dependencies: []
+    version: "2.5.6"
