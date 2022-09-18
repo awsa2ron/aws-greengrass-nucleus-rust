@@ -1,13 +1,6 @@
---- # init config
-system:
-  certificateFilePath: "/greengrass/v2/thingCert.crt"
-  privateKeyPath: "/greengrass/v2/privKey.key"
-  rootCaPath: "/greengrass/v2/rootCA.pem"
-  rootpath: "/greengrass/v2"
-  thingName: "GreengrassV2IotThing_random_uuid"
+---
 services:
   aws.greengrass.Nucleus:
-    componentType: "NUCLEUS"
     configuration:
       awsRegion: "<region>"
       greengrassDataPlaneEndpoint: ""
