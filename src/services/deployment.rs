@@ -87,7 +87,7 @@ pub async fn disconnect_shadow(mqtt_client: AsyncClient, thing_name: &str) -> Re
 
 fn assemble_payload(thing_name: &str, arn: &str, version: &str) -> Result<Value> {
     let version: u8 = version.parse()?;
-    // for next status 
+    // for next status
     match DEPLOYSTATUS.get() {
         States::Deployment => Ok(json!({
           "shadowName": DEPLOYMENT_SHADOW_NAME,

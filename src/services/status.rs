@@ -239,7 +239,6 @@ pub fn fss_data(
     // info!("fss-status-update-published").log("fleetStatusDetails {} components {}");
     // fleetStatusDetails, components);
 
-    // util::publish(client, "hello/world") // easysetup::createThing(client, &name, &name),
     // publisher.publish(fleetStatusDetails, components);
 
     // println!("{}", json!(payload));
