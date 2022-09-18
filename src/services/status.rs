@@ -46,11 +46,20 @@
 //!       periodicUpdateIntervalSec: 86400
 //! ```
 
-use crate::dependency;
+use crate::{config, dependency, provisioning};
+use anyhow::{Context, Error, Ok, Result};
+use bytes::Bytes;
+use clap::Args;
+use rumqttc::{Publish, QoS};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use tokio::{
+    sync::mpsc,
+    time::{sleep, Duration},
+};
 use tracing::{debug, event, info, span, Level};
 
-use crate::services::{Service, SERVICES};
+use crate::services::{Service, ServiceStatus, SERVICES};
 
 use super::kernel;
 
@@ -64,7 +73,34 @@ impl Service for Status {
     }
 }
 
-// implements Chunkable<ComponentStatusDetails>
+#[doc(alias = "uploadFleetStatusServiceData")]
+pub async fn start(tx: mpsc::Sender<Publish>) -> Result<()> {
+    let name = &provisioning::SystemConfiguration::global().thingName;
+
+    tokio::spawn(async move {
+        loop {
+            // println!("status service.");
+            let topic = format!("$aws/things/{}/greengrassv2/health/json", name);
+            let payload = json!(fss_data(name)).to_string();
+            info!(
+                event = "fss-status-update-published",
+                "Status update published to FSS"
+            );
+            tx.send(Publish {
+                dup: false,
+                qos: QoS::AtMostOnce,
+                retain: false,
+                pkid: 0,
+                topic: topic.to_string(),
+                payload: Bytes::from(payload.to_string()),
+            })
+            .await;
+            sleep(Duration::from_secs(86400)).await;
+        }
+    });
+    Ok(())
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FleetStatusDetails {
     ggcVersion: &'static str,
@@ -73,12 +109,7 @@ pub struct FleetStatusDetails {
     thing: String,
     overallDeviceStatus: OverallStatus,
     sequence_number: usize,
-    pub components: Vec<crate::services::ServiceStatus>,
-    // components: Vec<ComponentStatusDetails>,
-    // deploymentInformation: String,
-    // pub void setVariablePayload(List<ComponentStatusDetails> variablePayload) {
-    //     this.setComponentStatusDetails(variablePayload),
-    // }
+    pub components: Vec<ServiceStatus>,
 }
 
 impl FleetStatusDetails {
@@ -121,21 +152,6 @@ pub struct DeploymentInformation {
     fleetConfigurationArnForStatus: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ComponentStatusDetails {
-    component_name: String,
-
-    version: String,
-
-    fleetconfig_arns: Vec<String>,
-
-    status_details: String,
-
-    // We need to add this since during serialization, the 'is' is removed.
-    is_root: bool,
-
-    status: dependency::State,
-}
 
 pub const FLEET_STATUS_SERVICE_TOPICS: &str = "FleetStatusService";
 pub const DEFAULT_FLEET_STATUS_SERVICE_PUBLISH_TOPIC: &str =
@@ -175,8 +191,7 @@ pub struct FleetStatusService {
     // ScheduledFuture<?> periodicUpdateFuture,
 }
 
-#[doc(alias = "uploadFleetStatusServiceData")]
-pub fn upload_fss_data(
+pub fn fss_data(
     name: &str, // overAllStatus: OverallStatus,
                 // deploymentInformation: DeploymentInformation,
 ) -> FleetStatusDetails {
@@ -185,7 +200,7 @@ pub fn upload_fss_data(
     //     info!("Not updating fleet status data since MQTT connection is interrupted.");
     //     return;
     // }
-    let mut components: ComponentStatusDetails;
+    let mut components: ServiceStatus;
     let sequence_number: usize;
 
     // synchronized (greengrassServiceSet)
@@ -203,12 +218,7 @@ pub fn upload_fss_data(
     // info!("fss-status-update-published").log("fleetStatusDetails {} components {}");
     // fleetStatusDetails, components);
 
-    // util::publish(client, "hello/world") // easysetup::createThing(client, &name, &name),
     // publisher.publish(fleetStatusDetails, components);
-    info!(
-        event = "fss-status-update-published",
-        "Status update published to FSS"
-    );
 
     // println!("{}", json!(payload));
     payload

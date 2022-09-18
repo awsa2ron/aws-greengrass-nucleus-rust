@@ -11,7 +11,6 @@ pub mod services;
 // pub use self::easysetup::perform_setup;
 pub use self::mqtt::publish;
 pub use self::services::kernel::VERSION as ggcVersion;
-pub use self::services::status::upload_fss_data as fleet_status;
 
 use clap::Parser;
 
@@ -44,7 +43,7 @@ pub struct Args {
     // If the thing with
     // this name doesn't exist in your AWS account, the AWS IoT Greengrass Core software creates it.
     // Defaults to GreengrassV2IotThing_ plus a random UUID.
-    #[clap(short, long, default_value = "GreengrassV2IotThing_random_uuid")]
+    #[clap(short, long)]
     pub thing_name: String,
 
     // (Optional) The name of the AWS IoT thing group where you add this core

@@ -1,3 +1,8 @@
+use anyhow::{Context, Error, Ok, Result};
+use clap::Args;
+use rumqttc::Publish;
+use tokio::sync::mpsc;
+
 pub mod deployment;
 pub mod kernel;
 pub mod main;
@@ -43,11 +48,15 @@ pub trait Service {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ServiceStatus {
+    #[serde(rename = "componentName")]
     component_name: &'static str,
     version: &'static str,
+    #[serde(rename = "fleetConfigArns")]
     fleetconfig_arns: Vec<String>,
+    #[serde(rename = "statusDetails")]
     status_details: Value,
     // We need to add this since during serialization, the 'is' is removed.
+    #[serde(rename = "isRoot")]
     is_root: bool,
     status: State,
 }
@@ -59,13 +68,15 @@ use policy::Policy;
 use status::Status;
 use telemetry::Telemetry;
 
-pub fn start_services() {
+pub async fn start_services(tx: mpsc::Sender<Publish>) -> Result<()> {
     Kernel::enable();
     Main::enable();
     Policy::enable();
     Deployments::enable();
     Telemetry::enable();
     Status::enable();
+    status::start(tx).await?;
+    Ok(())
 }
 #[cfg(test)]
 mod tests {

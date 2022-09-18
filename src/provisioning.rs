@@ -5,16 +5,16 @@ use anyhow::Ok;
 use aws_config::meta::region::RegionProviderChain;
 // use greengrassv2 as ggv2;
 use once_cell::sync::OnceCell;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tracing::{debug, event, info, span, Level};
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SystemConfiguration {
     pub certificateFilePath: PathBuf,
     pub privateKeyPath: PathBuf,
     pub rootCaPath: PathBuf,
     pub rootpath: PathBuf,
-    thingName: String,
+    pub thingName: String,
 }
 
 pub static SYSCONFIG: OnceCell<SystemConfiguration> = OnceCell::new();
@@ -55,23 +55,6 @@ pub fn updateSystemConfiguration(
     certFilePath: PathBuf,
     rootpath: PathBuf,
 ) {
-    //   @NonNull UpdateBehaviorTree.UpdateBehavior updateBehavior) {
-    // Map<String, Object> updateMap = new HashMap<>();
-    // if (systemConfiguration.getCertificateFilePath() != null) {
-    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_CERTIFICATE_FILE_PATH,
-    //             systemConfiguration.getCertificateFilePath());
-    // }
-    // if (systemConfiguration.getPrivateKeyPath() != null) {
-    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_PRIVATE_KEY_PATH, systemConfiguration.getPrivateKeyPath());
-    // }
-    // if (systemConfiguration.getThingName() != null) {
-    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_THING_NAME, systemConfiguration.getThingName());
-    // }
-    // if (systemConfiguration.getRootCAPath() != null) {
-    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_ROOT_CA_PATH, systemConfiguration.getRootCAPath());
-    // }
-    // Topics systemConfig = kernel.getConfig().lookupTopics(SYSTEM_NAMESPACE_KEY);
-    // systemConfig.updateFromMap(updateMap, new UpdateBehaviorTree(updateBehavior, System.currentTimeMillis()));
     let sysConfig = SystemConfiguration::update(
         thingName.to_string(),
         certFilePath,
@@ -125,25 +108,6 @@ pub fn updateNucleusConfiguration(
     iotDataEndpoint: String,
     iotRoleAlias: String,
 ) {
-    // Map<String, Object> updateMap = new HashMap<>();
-    // if (nucleusConfiguration.getAwsRegion() != null) {
-    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_AWS_REGION, nucleusConfiguration.getAwsRegion());
-    // }
-    // if (nucleusConfiguration.getIotCredentialsEndpoint() != null) {
-    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_IOT_CRED_ENDPOINT, nucleusConfiguration
-    //             .getIotCredentialsEndpoint());
-    // }
-    // if (nucleusConfiguration.getIotDataEndpoint() != null) {
-    //     updateMap.put(DeviceConfiguration.DEVICE_PARAM_IOT_DATA_ENDPOINT, nucleusConfiguration
-    //             .getIotDataEndpoint());
-    // }
-    // if (nucleusConfiguration.getIotRoleAlias() != null) {
-    //     updateMap.put(DeviceConfiguration.IOT_ROLE_ALIAS_TOPIC, nucleusConfiguration.getIotRoleAlias());
-    // }
-    // String nucleusComponentName = kernel.getContext().get(DeviceConfiguration.class).getNucleusComponentName();
-    // Topics nucleusConfig = kernel.getConfig()
-    //         .lookupTopics(SERVICES_NAMESPACE_TOPIC, nucleusComponentName, CONFIGURATION_CONFIG_KEY);
-    // nucleusConfig.updateFromMap(updateMap,  new UpdateBehaviorTree(updateBehavior, System.currentTimeMillis()));
     let nucleusConfig = NucleusConfiguration::update(
         awsRegion.to_string(),
         iotCredentialsEndpoint,
