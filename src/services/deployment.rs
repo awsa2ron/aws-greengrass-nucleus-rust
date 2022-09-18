@@ -21,6 +21,8 @@ use tokio::time;
 
 use crate::services::{Service, SERVICES};
 use crate::{config, ggcVersion};
+const VERSION: &str = "0.0.0";
+
 
 pub const CONFIGURATION_ARN_LOG_KEY_NAME: &str = "CONFIGURATION_ARN";
 pub const DESIRED_STATUS_KEY: &str = "desiredStatus";
@@ -37,7 +39,7 @@ pub struct Deployments {}
 
 impl Service for Deployments {
     fn enable() {
-        SERVICES.insert(NAME.into(), Self::new(NAME, ggcVersion));
+        SERVICES.insert(NAME.into(), Self::new(NAME, VERSION));
     }
 }
 
