@@ -59,7 +59,7 @@ use tokio::{
 };
 use tracing::{debug, event, info, span, Level};
 
-use crate::services::{Service, SERVICES};
+use crate::services::{Service, ServiceStatus, SERVICES};
 
 use super::kernel;
 
@@ -101,7 +101,6 @@ pub async fn start(tx: mpsc::Sender<Publish>) -> Result<()> {
     Ok(())
 }
 
-// implements Chunkable<ComponentStatusDetails>
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FleetStatusDetails {
     ggcVersion: &'static str,
@@ -110,12 +109,7 @@ pub struct FleetStatusDetails {
     thing: String,
     overallDeviceStatus: OverallStatus,
     sequence_number: usize,
-    pub components: Vec<crate::services::ServiceStatus>,
-    // components: Vec<ComponentStatusDetails>,
-    // deploymentInformation: String,
-    // pub void setVariablePayload(List<ComponentStatusDetails> variablePayload) {
-    //     this.setComponentStatusDetails(variablePayload),
-    // }
+    pub components: Vec<ServiceStatus>,
 }
 
 impl FleetStatusDetails {
@@ -158,21 +152,6 @@ pub struct DeploymentInformation {
     fleetConfigurationArnForStatus: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ComponentStatusDetails {
-    component_name: String,
-
-    version: String,
-
-    fleetconfig_arns: Vec<String>,
-
-    status_details: String,
-
-    // We need to add this since during serialization, the 'is' is removed.
-    is_root: bool,
-
-    status: dependency::State,
-}
 
 pub const FLEET_STATUS_SERVICE_TOPICS: &str = "FleetStatusService";
 pub const DEFAULT_FLEET_STATUS_SERVICE_PUBLISH_TOPIC: &str =
@@ -221,7 +200,7 @@ pub fn fss_data(
     //     info!("Not updating fleet status data since MQTT connection is interrupted.");
     //     return;
     // }
-    let mut components: ComponentStatusDetails;
+    let mut components: ServiceStatus;
     let sequence_number: usize;
 
     // synchronized (greengrassServiceSet)

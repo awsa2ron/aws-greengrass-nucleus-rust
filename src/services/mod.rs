@@ -48,11 +48,15 @@ pub trait Service {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ServiceStatus {
+    #[serde(rename = "componentName")]
     component_name: &'static str,
     version: &'static str,
+    #[serde(rename = "fleetConfigArns")]
     fleetconfig_arns: Vec<String>,
+    #[serde(rename = "statusDetails")]
     status_details: Value,
     // We need to add this since during serialization, the 'is' is removed.
+    #[serde(rename = "isRoot")]
     is_root: bool,
     status: State,
 }
