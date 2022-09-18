@@ -46,7 +46,7 @@
 //!       periodicUpdateIntervalSec: 86400
 //! ```
 
-use crate::{config, dependency};
+use crate::{config, dependency, provisioning};
 use anyhow::{Context, Error, Ok, Result};
 use bytes::Bytes;
 use clap::Args;
@@ -74,8 +74,8 @@ impl Service for Status {
 }
 
 #[doc(alias = "uploadFleetStatusServiceData")]
-pub async fn upload_fss_data(tx: mpsc::Sender<Publish>) -> Result<()> {
-    let name = config::Config::global().system.thingName.as_str();
+pub async fn start(tx: mpsc::Sender<Publish>) -> Result<()> {
+    let name = &provisioning::SystemConfiguration::global().thingName;
 
     tokio::spawn(async move {
         loop {

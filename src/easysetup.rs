@@ -101,21 +101,29 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<()> {
     // info!("Failed to download Root CA.");
     Ok(())
 }
+pub async fn setup(args: &Args) {
+    info!("Configuring Nucleus with provisioned resource details...");
+    updateKernelConfigWithIotConfiguration(&args.thing_name).await;
+    info!("Successfully configured Nucleus with provisioned resource details!");
+    // if args.deploy_dev_tools {
+    //     createInitialDeploymentIfNeeded(group.as_deref(), "cliVersion");
+    // }
+}
 
 pub async fn provision(args: &Args) -> Result<()> {
     let name = &args.thing_name;
     let region = &args.aws_region;
     let policy = &args.thing_policy_name;
+    let root = &args.root;
     let group = &args.thing_group_name;
     let role = &args.tes_role_name;
     let role_alias = &args.tes_role_alias_name;
-    let dev = args.deploy_dev_tools;
 
     info!(
         "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
         name
     );
-    createThing(name, region, policy).await?;
+    createThing(name, region, policy, root).await?;
     info!(
         "Successfully provisioned AWS IoT resources for the device with IoT Thing Name: {}",
         name
@@ -129,22 +137,17 @@ pub async fn provision(args: &Args) -> Result<()> {
     info!("Setting up resources for {name} ...");
     setupIoTRoleForTes(&role, role_alias, "certificateArn");
     createAndAttachRolePolicy(&role, &region);
-    info!("Configuring Nucleus with provisioned resource details...");
-    updateKernelConfigWithIotConfiguration(name).await;
-    info!("Successfully configured Nucleus with provisioned resource details!");
-    if dev {
-        createInitialDeploymentIfNeeded(group.as_deref(), "cliVersion");
-    }
+
     Ok(())
 }
 
 async fn updateKernelConfigWithIotConfiguration(name: &str) {
-    // rootDir = kernel.getNucleusPaths().rootPath();
-    // let rootDir = Path::new("/greengrass/v2");
-    let rootDir = PathBuf::new();
-    let caFilePath = rootDir.join("rootCA.pem");
-    let privKeyFilePath = rootDir.join("privKey.key");
-    let certFilePath = rootDir.join("thingCert.crt");
+    // root_path = kernel.getNucleusPaths().rootPath();
+    // let root_path = Path::new("/greengrass/v2");
+    let root_path = PathBuf::new();
+    let caFilePath = root_path.join("rootCA.pem");
+    let privKeyFilePath = root_path.join("privKey.key");
+    let certFilePath = root_path.join("thingCert.crt");
 
     downloadRootCAToFile(Path::new("rootCA.pem")).await;
 
@@ -153,7 +156,7 @@ async fn updateKernelConfigWithIotConfiguration(name: &str) {
         caFilePath,
         privKeyFilePath,
         certFilePath,
-        rootDir,
+        root_path,
     );
 }
 
@@ -165,7 +168,7 @@ async fn updateKernelConfigWithIotConfiguration(name: &str) {
  * @param thing_name  thing_name
  * @return created thing info
  */
-async fn createThing(thing_name: &str, region: &str, policy: &str) -> Result<()> {
+async fn createThing(thing_name: &str, region: &str, policy: &str, root_path: &PathBuf) -> Result<()> {
     let region_provider =
         RegionProviderChain::first_try(Region::new(region.to_string())).or_default_provider();
     let shared_config = aws_config::from_env().region(region_provider).load().await;
@@ -190,15 +193,14 @@ async fn createThing(thing_name: &str, region: &str, policy: &str) -> Result<()>
         .set_as_active(true)
         .send()
         .await?;
-    let rootDir = Path::new(".");
     fs::write(
-        rootDir.join("thingCert.crt"),
+        root_path.join("thingCert.crt"),
         &keyResponse
             .certificate_pem()
             .context("Failed to create certificate for thing.")?,
     )?;
     fs::write(
-        rootDir.join("privKey.key"),
+        root_path.join("privKey.key"),
         &keyResponse
             .key_pair
             .as_ref()

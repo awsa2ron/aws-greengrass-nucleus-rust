@@ -11,7 +11,6 @@ pub mod services;
 // pub use self::easysetup::perform_setup;
 pub use self::mqtt::publish;
 pub use self::services::kernel::VERSION as ggcVersion;
-pub use self::services::status::upload_fss_data as fleet_status;
 
 use clap::Parser;
 

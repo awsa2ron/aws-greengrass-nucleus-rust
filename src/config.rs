@@ -10,7 +10,6 @@ use crate::provisioning;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
-    pub system: provisioning::SystemConfiguration,
     pub services: Services,
 }
 const CONFIG_FILE_PATH: &'static str = "config/config.yaml";

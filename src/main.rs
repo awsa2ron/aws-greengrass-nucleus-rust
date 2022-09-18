@@ -19,6 +19,7 @@ async fn main() -> Result<(), Error> {
     if args.provision {
         easysetup::provision(&args).await?;
     }
+    easysetup::setup(&args).await;
     config::init(&args.init_config)?;
     let (mqtt_client, mut eventloop) = mqtt::init(&args.thing_name)?;
     let (tx, mut rx) = mpsc::channel(128);

@@ -71,7 +71,7 @@ pub async fn start_services(tx: mpsc::Sender<Publish>) -> Result<()> {
     Deployments::enable();
     Telemetry::enable();
     Status::enable();
-    status::upload_fss_data(tx).await?;
+    status::start(tx).await?;
     Ok(())
 }
 #[cfg(test)]
