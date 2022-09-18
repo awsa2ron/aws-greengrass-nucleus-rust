@@ -85,10 +85,11 @@ pub async fn disconnect_shadow(mqtt_client: AsyncClient, thing_name: &str) -> Re
     Ok(())
 }
 
-fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> Result<Value> {
+fn assemble_payload(thing_name: &str, arn: &str, version: &str) -> Result<Value> {
     let version: u8 = version.parse()?;
-    if next {
-        Ok(json!({
+    // for next status 
+    match DEPLOYSTATUS.get() {
+        States::Deployment => Ok(json!({
           "shadowName": DEPLOYMENT_SHADOW_NAME,
           "thing_name": thing_name,
           "state": {
@@ -100,9 +101,8 @@ fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> R
             }
           },
           "version": version
-        }))
-    } else {
-        Ok(json!({
+        })),
+        States::Inprogress => Ok(json!({
           "shadowName": DEPLOYMENT_SHADOW_NAME,
           "thing_name": thing_name,
           "state": {
@@ -116,7 +116,8 @@ fn assemble_payload(thing_name: &str, arn: &str, version: &str, next: bool) -> R
             }
           },
           "version": version
-        }))
+        })),
+        _ => Ok(json!("")),
     }
 }
 
@@ -140,7 +141,7 @@ fn assemble_publish_content(v: Value) -> Result<Publish> {
         Some(DEPLOYMENT_SHADOW_NAME),
     )
     .map_err(Error::msg)?;
-    let payload = assemble_payload(thing_name, configuration_arn, &shadow_version, true)?;
+    let payload = assemble_payload(thing_name, configuration_arn, &shadow_version)?;
     Ok(Publish {
         dup: false,
         qos: QoS::AtMostOnce,
@@ -241,10 +242,10 @@ async fn list_component_version(
 async fn get_component(client: &Greengrassv2_Client, arn: &str) -> Result<Value, Error> {
     let resp = client.get_component().arn(arn).send().await?;
 
-    println!("components:");
+    println!("get_component:");
 
     println!(
-        "    recipeOutputFormat:  {:?}",
+        "   recipeOutputFormat:  {:?}",
         resp.recipe_output_format().unwrap()
     );
     let recipe = resp.recipe().unwrap();
@@ -261,9 +262,9 @@ async fn get_component(client: &Greengrassv2_Client, arn: &str) -> Result<Value,
 async fn get_s3_object(client: &S3_Client, uri: &str) -> Result<(), Error> {
     let v: Vec<&str> = uri.splitn(4, '/').collect();
 
-    println!("{:?}", v);
-    println!("{:?}", v[0]);
-    println!("{:?}", v[3]);
+    // println!("{:?}", v);
+    // println!("{:?}", v[0]);
+    // println!("{:?}", v[3]);
 
     let resp = client.get_object().bucket(v[2]).key(v[3]).send().await?;
     let data = resp.body.collect().await;
