@@ -17,16 +17,16 @@ use std::path::Path;
 use std::{fs, path::PathBuf};
 use tracing::{debug, event, info, span, Level};
 
-pub struct ThingInfo {
-    thing_arn: String,
-    thing_name: String,
-    certificate_arn: String,
-    certificate_id: String,
-    certificate_pem: String,
-    key_pair: KeyPair,
-    data_endpoint: String,
-    cred_endpoint: String,
-}
+// pub struct ThingInfo {
+//     thing_arn: String,
+//     thing_name: String,
+//     certificate_arn: String,
+//     certificate_id: String,
+//     certificate_pem: String,
+//     key_pair: KeyPair,
+//     data_endpoint: String,
+//     cred_endpoint: String,
+// }
 
 const GG_TOKEN_EXCHANGE_ROLE_ACCESS_POLICY_SUFFIX: &str = "Access";
 const GG_TOKEN_EXCHANGE_ROLE_ACCESS_POLICY_DOCUMENT: &str = r#"{
@@ -115,30 +115,30 @@ pub async fn provision(args: &Args) -> Result<()> {
         "Provisioning AWS IoT resources for the device with IoT Thing Name: {}",
         name
     );
-    let thing = createThing(name, region, policy).await?;
+    createThing(name, region, policy).await?;
     info!(
         "Successfully provisioned AWS IoT resources for the device with IoT Thing Name: {}",
         name
     );
     if let Some(group) = group {
-        info!("Adding IoT Thing {} into Thing Group: {}...", name, name);
-        addThingToGroup(name, name);
-        info!("Successfully added Thing into Thing Group: {}", name);
+        info!("Adding IoT Thing {} into Thing Group: {}...", name, group);
+        addThingToGroup(name, group);
+        info!("Successfully added Thing into Thing Group: {}", group);
     }
 
-    info!("Setting up resources for %s ... %n");
+    info!("Setting up resources for {name} ...");
     setupIoTRoleForTes(&role, role_alias, "certificateArn");
     createAndAttachRolePolicy(&role, &region);
     info!("Configuring Nucleus with provisioned resource details...");
-    updateKernelConfigWithIotConfiguration(&thing).await;
+    updateKernelConfigWithIotConfiguration(name).await;
     info!("Successfully configured Nucleus with provisioned resource details!");
     if dev {
-        createInitialDeploymentIfNeeded(&thing, group.as_deref(), "cliVersion");
+        createInitialDeploymentIfNeeded(group.as_deref(), "cliVersion");
     }
     Ok(())
 }
 
-async fn updateKernelConfigWithIotConfiguration(thing: &ThingInfo) {
+async fn updateKernelConfigWithIotConfiguration(name: &str) {
     // rootDir = kernel.getNucleusPaths().rootPath();
     // let rootDir = Path::new("/greengrass/v2");
     let rootDir = PathBuf::new();
@@ -149,7 +149,7 @@ async fn updateKernelConfigWithIotConfiguration(thing: &ThingInfo) {
     downloadRootCAToFile(Path::new("rootCA.pem")).await;
 
     provisioning::updateSystemConfiguration(
-        thing.thing_name.as_str(),
+        name,
         caFilePath,
         privKeyFilePath,
         certFilePath,
@@ -165,7 +165,7 @@ async fn updateKernelConfigWithIotConfiguration(thing: &ThingInfo) {
  * @param thing_name  thing_name
  * @return created thing info
  */
-async fn createThing(thing_name: &str, region: &str, policy: &str) -> Result<ThingInfo> {
+async fn createThing(thing_name: &str, region: &str, policy: &str) -> Result<()> {
     let region_provider =
         RegionProviderChain::first_try(Region::new(region.to_string())).or_default_provider();
     let shared_config = aws_config::from_env().region(region_provider).load().await;
@@ -244,17 +244,17 @@ async fn createThing(thing_name: &str, region: &str, policy: &str) -> Result<Thi
         .send()
         .await?;
 
-    let thingInfo = ThingInfo {
-        thing_arn: thing_arn.unwrap().to_string(),
-        thing_name: thing_name.to_string(),
-        certificate_arn: certificate_arn.to_string(),
-        certificate_id: certificate_arn.to_string(),
-        certificate_pem: certificate_arn.to_string(),
-        key_pair: keyResponse.key_pair.unwrap(),
-        data_endpoint: data_endpoint.endpoint_address.unwrap(),
-        cred_endpoint: cred_endpoint.endpoint_address.unwrap(),
-    };
-    Ok(thingInfo)
+    // let thingInfo = ThingInfo {
+    //     thing_arn: thing_arn.unwrap().to_string(),
+    //     thing_name: thing_name.to_string(),
+    //     certificate_arn: certificate_arn.to_string(),
+    //     certificate_id: certificate_arn.to_string(),
+    //     certificate_pem: certificate_arn.to_string(),
+    //     key_pair: keyResponse.key_pair.unwrap(),
+    //     data_endpoint: data_endpoint.endpoint_address.unwrap(),
+    //     cred_endpoint: cred_endpoint.endpoint_address.unwrap(),
+    // };
+    Ok(())
 }
 
 /**
@@ -291,7 +291,7 @@ pub fn createAndAttachRolePolicy(roleName: &str, region: &str) {}
  * @param cliVersion CLI version to install
  */
 pub fn createInitialDeploymentIfNeeded(
-    thingInfo: &ThingInfo,
+    // thingInfo: &ThingInfo,
     thingGroupName: Option<&str>,
     cliVersion: &str,
 ) {
