@@ -14,18 +14,19 @@ use tracing_subscriber;
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let args = Args::parse();
+
     tracing_subscriber::fmt::init();
     if args.provision {
         easysetup::provision(&args).await?;
     }
-    config::init(&args.init_config);
+    config::init(&args.init_config)?;
     let (mqtt_client, mut eventloop) = mqtt::init(&args.thing_name)?;
     let (tx, mut rx) = mpsc::channel(128);
+
     info!("Launching Nucleus...");
     services::start_services(tx.clone()).await?;
     info!("Launched Nucleus successfully.");
     deployment::connect_shadow(&mqtt_client, &args.thing_name).await?;
-
     while args.start {
         tokio::select! {
             Ok(event) = eventloop.poll() => { process(event, tx.clone()).await; }

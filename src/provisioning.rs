@@ -5,10 +5,10 @@ use anyhow::Ok;
 use aws_config::meta::region::RegionProviderChain;
 // use greengrassv2 as ggv2;
 use once_cell::sync::OnceCell;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tracing::{debug, event, info, span, Level};
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SystemConfiguration {
     pub certificateFilePath: PathBuf,
     pub privateKeyPath: PathBuf,
