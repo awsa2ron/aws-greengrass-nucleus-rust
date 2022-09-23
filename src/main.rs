@@ -1,8 +1,8 @@
 use anyhow::{Error, Result};
 use aws_greengrass_nucleus::{
-    config, easysetup, mqtt,
+    config, mqtt,
     services::{self, deployment},
-    Args,
+    Args, provisioning,
 };
 use aws_iot_device_sdk::{shadow, *};
 use clap::Parser;
@@ -17,9 +17,8 @@ async fn main() -> Result<(), Error> {
 
     tracing_subscriber::fmt::init();
     if args.provision {
-        easysetup::provision(&args).await?;
+        provisioning::provision(&args).await?;
     }
-    easysetup::setup(&args).await;
     config::init(&args.init_config)?;
     let (mqtt_client, mut eventloop) = mqtt::init(&args.thing_name)?;
     let (tx, mut rx) = mpsc::channel(128);

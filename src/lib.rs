@@ -2,8 +2,8 @@
 pub mod config;
 pub mod dependency;
 pub mod easysetup;
-pub mod mqtt;
 pub mod provisioning;
+pub mod mqtt;
 pub mod util;
 
 pub mod services;
@@ -19,7 +19,7 @@ use clap::Parser;
 pub struct Args {
     // The AWS Region to use. The AWS IoT Greengrass Core software uses this Region
     // to retrieve or create the AWS resources that it requires
-    #[clap(long, default_value = "ap-southeast-1")]
+    #[clap(long)]
     pub aws_region: String,
 
     // (Optional) The path to the folder to use as the root for the AWS IoT Greengrass Core
@@ -42,8 +42,7 @@ pub struct Args {
     // The name of the AWS IoT thing that you register as this core device.
     // If the thing with
     // this name doesn't exist in your AWS account, the AWS IoT Greengrass Core software creates it.
-    // Defaults to GreengrassV2IotThing_ plus a random UUID.
-    #[clap(short, long)]
+    #[clap(long)]
     pub thing_name: String,
 
     // (Optional) The name of the AWS IoT thing group where you add this core
