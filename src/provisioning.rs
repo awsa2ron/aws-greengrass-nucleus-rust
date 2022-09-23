@@ -336,14 +336,15 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<()> {
     if Path::new(path).exists() {
         info!("Root CA file found at . Contents will be preserved.");
     }
-    info!("Downloading Root CA from {}", ROOT_CA_URL);
+    info!("Please download Root CA by curl -o rootCA.pem {}.", ROOT_CA_URL);
+    // info!("Downloading Root CA from {}", ROOT_CA_URL);
 
     // TODO: append
 
-    let body = reqwest::get(ROOT_CA_URL).await?.text().await?;
+    // let body = reqwest::get(ROOT_CA_URL).await?.text().await?;
 
-    debug!("body = {:?}", &body);
-    fs::write(path, body).expect("Unable to write file");
+    // debug!("body = {:?}", &body);
+    // fs::write(path, body).expect("Unable to write file");
 
     // downloadFileFromURL(ROOT_CA_URL, path);
     // removeDuplicateCertificates(f);
