@@ -152,7 +152,6 @@ pub struct DeploymentInformation {
     fleetConfigurationArnForStatus: String,
 }
 
-
 pub const FLEET_STATUS_SERVICE_TOPICS: &str = "FleetStatusService";
 pub const DEFAULT_FLEET_STATUS_SERVICE_PUBLISH_TOPIC: &str =
     "$aws/things/{thing_name}/greengrassv2/health/json";

@@ -16,8 +16,6 @@ use std::path::Path;
 use std::{fs, path::PathBuf};
 use tracing::{debug, event, info, span, Level};
 
-
-
 const IOT_ROLE_POLICY_NAME_PREFIX: &str = "GreengrassTESCertificatePolicy";
 const GREENGRASS_CLI_COMPONENT_NAME: &str = "aws.greengrass.Cli";
 const INITIAL_DEPLOYMENT_NAME_FORMAT: &str = "Deployment for %s";

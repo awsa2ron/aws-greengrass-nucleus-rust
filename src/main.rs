@@ -1,8 +1,8 @@
 use anyhow::{Error, Result};
 use aws_greengrass_nucleus::{
-    config, mqtt,
+    config, mqtt, provisioning,
     services::{self, deployment},
-    Args, provisioning,
+    Args,
 };
 use aws_iot_device_sdk::{shadow, *};
 use clap::Parser;

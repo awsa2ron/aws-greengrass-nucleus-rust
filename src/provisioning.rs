@@ -1,7 +1,10 @@
 #![allow(non_snake_case)]
-use std::{path::{Path, PathBuf}, fs};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
-use anyhow::{Result, Ok, Context};
+use anyhow::{Context, Ok, Result};
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_greengrassv2::Region;
 use aws_sdk_iot::Client;
@@ -205,7 +208,12 @@ pub async fn provision(args: &Args) -> Result<()> {
  * @param thing_name  thing_name
  * @return created thing info
  */
-async fn createThing(thing_name: &str, region: &str, policy: &str, root_path: &PathBuf) -> Result<()> {
+async fn createThing(
+    thing_name: &str,
+    region: &str,
+    policy: &str,
+    root_path: &PathBuf,
+) -> Result<()> {
     let region_provider =
         RegionProviderChain::first_try(Region::new(region.to_string())).or_default_provider();
     let shared_config = aws_config::from_env().region(region_provider).load().await;
@@ -336,7 +344,10 @@ pub async fn downloadRootCAToFile(path: &Path) -> Result<()> {
     if Path::new(path).exists() {
         info!("Root CA file found at . Contents will be preserved.");
     }
-    info!("Please download Root CA by curl -o rootCA.pem {}.", ROOT_CA_URL);
+    info!(
+        "Please download Root CA by curl -o rootCA.pem {}.",
+        ROOT_CA_URL
+    );
     // info!("Downloading Root CA from {}", ROOT_CA_URL);
 
     // TODO: append

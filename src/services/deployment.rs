@@ -23,7 +23,6 @@ use crate::services::{Service, SERVICES};
 use crate::{config, ggcVersion};
 const VERSION: &str = "0.0.0";
 
-
 pub const CONFIGURATION_ARN_LOG_KEY_NAME: &str = "CONFIGURATION_ARN";
 pub const DESIRED_STATUS_KEY: &str = "desiredStatus";
 pub const FLEET_CONFIG_KEY: &str = "fleetConfig";
