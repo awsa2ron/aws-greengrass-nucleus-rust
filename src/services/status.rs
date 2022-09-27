@@ -75,7 +75,7 @@ impl Service for Status {
 
 #[doc(alias = "uploadFleetStatusServiceData")]
 pub async fn start(tx: mpsc::Sender<Publish>) -> Result<()> {
-    let name = "ThingName";
+    let name = "m1ubuntu";
 
     tokio::spawn(async move {
         loop {
@@ -117,7 +117,7 @@ impl FleetStatusDetails {
         FleetStatusDetails {
             ggcVersion: kernel::VERSION,
             platform: "linux",
-            architecture: "x86_64",
+            architecture: "aarch64",
             thing: name.to_string(),
             overallDeviceStatus: OverallStatus::HEALTHY,
             sequence_number: 9,
