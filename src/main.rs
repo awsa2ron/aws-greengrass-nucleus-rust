@@ -26,7 +26,7 @@ async fn main() -> Result<(), Error> {
     info!("Launching Nucleus...");
     services::start_services(tx.clone()).await?;
     info!("Launched Nucleus successfully.");
-    deployment::connect_shadow(&mqtt_client, &args.thing_name).await?;
+    deployment::connect_shadow_delta(&mqtt_client, &args.thing_name).await?;
     while args.start {
         tokio::select! {
             Ok(event) = eventloop.poll() => { process(event, tx.clone()).await; }
@@ -54,8 +54,15 @@ async fn process(event: Event, tx: mpsc::Sender<Publish>) {
                     });
                 }
             }
-            Ok(TopicType::Jobs) => {}
-            _ => {}
+            Ok(TopicType::Jobs) => {
+                println!("topic type is {:#?}", TopicType::Jobs);
+            }
+            Ok(others) => {
+                println!("topic type is {:#?}", others);
+            }
+            Err(_) => {
+                println!("topic type is error");
+            }
         }
     }
     // Ok(())
