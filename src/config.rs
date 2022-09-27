@@ -59,8 +59,8 @@ pub struct Services {
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Kernel {
-    #[serde(rename = "componentType")]
-    pub component: String,
+    // #[serde(rename = "componentType")]
+    // pub component: String,
     pub configuration: Configuration,
     pub dependencies: Value,
     pub version: String,
