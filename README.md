@@ -143,3 +143,5 @@ see docs/design.md
 ## Use case
 The following example shows how an AWS IoT Greengrass device interacts with the AWS IoT Greengrass cloud service and other AWS services in the AWS Cloud.
 ![example](https://docs.aws.amazon.com/greengrass/v2/developerguide/images/how-it-works.png)
+
+#
