@@ -1,6 +1,6 @@
 use anyhow::{Error, Result};
 use aws_greengrass_nucleus::{
-    config, easysetup, mqtt,
+    config, mqtt, provisioning,
     services::{self, deployment},
     Args,
 };
@@ -17,9 +17,8 @@ async fn main() -> Result<(), Error> {
 
     tracing_subscriber::fmt::init();
     if args.provision {
-        easysetup::provision(&args).await?;
+        provisioning::provision(&args).await?;
     }
-    easysetup::setup(&args).await;
     config::init(&args.init_config)?;
     let (mqtt_client, mut eventloop) = mqtt::init(&args.thing_name)?;
     let (tx, mut rx) = mpsc::channel(128);
@@ -27,7 +26,7 @@ async fn main() -> Result<(), Error> {
     info!("Launching Nucleus...");
     services::start_services(tx.clone()).await?;
     info!("Launched Nucleus successfully.");
-    deployment::connect_shadow(&mqtt_client, &args.thing_name).await?;
+    deployment::connect_shadow_delta(&mqtt_client, &args.thing_name).await?;
     while args.start {
         tokio::select! {
             Ok(event) = eventloop.poll() => { process(event, tx.clone()).await; }
@@ -55,8 +54,15 @@ async fn process(event: Event, tx: mpsc::Sender<Publish>) {
                     });
                 }
             }
-            Ok(TopicType::Jobs) => {}
-            _ => {}
+            Ok(TopicType::Jobs) => {
+                println!("topic type is {:#?}", TopicType::Jobs);
+            }
+            Ok(others) => {
+                println!("topic type is {:#?}", others);
+            }
+            Err(_) => {
+                println!("topic type is error");
+            }
         }
     }
     // Ok(())

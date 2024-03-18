@@ -23,7 +23,6 @@ use crate::services::{Service, SERVICES};
 use crate::{config, ggcVersion};
 const VERSION: &str = "0.0.0";
 
-
 pub const CONFIGURATION_ARN_LOG_KEY_NAME: &str = "CONFIGURATION_ARN";
 pub const DESIRED_STATUS_KEY: &str = "desiredStatus";
 pub const FLEET_CONFIG_KEY: &str = "fleetConfig";
@@ -70,13 +69,14 @@ impl DeployStates {
         match *lock {
             States::Deployment => *lock = States::Inprogress,
             States::Inprogress => *lock = States::Succeed,
-            States::Succeed => self.reset(),
+            States::Succeed => *lock = States::Deployment,
         }
     }
 }
 
-pub async fn connect_shadow(mqtt_client: &AsyncClient, thing_name: &str) -> Result<()> {
-    let topic = format!("$aws/things/{thing_name}/shadow/name/{DEPLOYMENT_SHADOW_NAME}/#");
+pub async fn connect_shadow_delta(mqtt_client: &AsyncClient, thing_name: &str) -> Result<()> {
+    let topic =
+        format!("$aws/things/{thing_name}/shadow/name/{DEPLOYMENT_SHADOW_NAME}/update/delta");
     mqtt_client.subscribe(&topic, QoS::AtMostOnce).await?;
     Ok(())
 }
@@ -165,19 +165,21 @@ pub async fn shadow_deployment(v: Publish, tx: Sender<Publish>) -> Result<()> {
         States::Inprogress => {
             let data: Value = serde_json::from_str(v["state"]["fleetConfig"].as_str().unwrap())?;
 
-            // println!("[components] is {}", data["components"]);
-            let mut map: HashMap<String, HashMap<String, serde_json::Value>> =
-                serde_json::from_value(data["components"].to_owned())?;
-            for (k, v) in map.drain().take(1) {
-                component_deploy(
-                    k,
-                    v.get("version")
-                        .context("Failed to find version feild.")?
-                        .to_string()
-                        .trim_matches('"')
-                        .to_string(),
-                )
-                .await;
+            println!("[components] is {}", data["components"]);
+            if data["components"].to_string() != "" {
+                let mut map: HashMap<String, HashMap<String, serde_json::Value>> =
+                    serde_json::from_value(data["components"].to_owned())?;
+                for (k, v) in map.drain().take(1) {
+                    component_deploy(
+                        k,
+                        v.get("version")
+                            .context("Failed to find version feild.")?
+                            .to_string()
+                            .trim_matches('"')
+                            .to_string(),
+                    )
+                    .await;
+                }
             }
 
             let value = assemble_publish_content(v)?;

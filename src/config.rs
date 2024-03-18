@@ -6,8 +6,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use crate::provisioning;
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub services: Services,
@@ -61,8 +59,8 @@ pub struct Services {
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Kernel {
-    #[serde(rename = "componentType")]
-    pub component: String,
+    // #[serde(rename = "componentType")]
+    // pub component: String,
     pub configuration: Configuration,
     pub dependencies: Value,
     pub version: String,

@@ -138,7 +138,7 @@ misc:
 
 ## Design
 
-see docs/design.md
+see [architecture.md](docs/architecture.md) and [design.md](docs/design.md)
 
 ## Use case
 The following example shows how an AWS IoT Greengrass device interacts with the AWS IoT Greengrass cloud service and other AWS services in the AWS Cloud.

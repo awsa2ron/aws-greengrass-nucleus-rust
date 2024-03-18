@@ -46,7 +46,7 @@
 //!       periodicUpdateIntervalSec: 86400
 //! ```
 
-use crate::{config, dependency, provisioning};
+use crate::{config, dependency};
 use anyhow::{Context, Error, Ok, Result};
 use bytes::Bytes;
 use clap::Args;
@@ -75,7 +75,7 @@ impl Service for Status {
 
 #[doc(alias = "uploadFleetStatusServiceData")]
 pub async fn start(tx: mpsc::Sender<Publish>) -> Result<()> {
-    let name = &provisioning::SystemConfiguration::global().thingName;
+    let name = "m1ubuntu";
 
     tokio::spawn(async move {
         loop {
@@ -117,7 +117,7 @@ impl FleetStatusDetails {
         FleetStatusDetails {
             ggcVersion: kernel::VERSION,
             platform: "linux",
-            architecture: "x86_64",
+            architecture: "aarch64",
             thing: name.to_string(),
             overallDeviceStatus: OverallStatus::HEALTHY,
             sequence_number: 9,
@@ -151,7 +151,6 @@ pub struct DeploymentInformation {
     status_details: StatusDetails,
     fleetConfigurationArnForStatus: String,
 }
-
 
 pub const FLEET_STATUS_SERVICE_TOPICS: &str = "FleetStatusService";
 pub const DEFAULT_FLEET_STATUS_SERVICE_PUBLISH_TOPIC: &str =
